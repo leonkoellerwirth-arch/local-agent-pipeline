@@ -189,9 +189,20 @@ sibling repo:
 | `action` | string | e.g. `"plan"`, `"execute"`, `"review"`, `"gate_decision"` |
 | `decision` | string or null | e.g. `"pass"`, `"escalate"`, `"reject"`, `"completed"` |
 | `policy_flags` | list of strings | May be extended; the sibling must tolerate unknown values |
+| `prev_hash` | string or null | Tamper-evidence chain: previous event's `entry_hash` |
+| `entry_hash` | string or null | Tamper-evidence chain: hash of this event + `prev_hash` |
+
+**Tamper-evidence chain.** `prev_hash`/`entry_hash` link the events into an
+append-only chain that `audit.verify_chain` (and `agent-pipeline audit --verify`)
+checks. `entry_hash` is computed over the canonical JSON of the event *excluding
+`entry_hash` itself* (see `audit.chain_hash`). **Any tool that rewrites a trail
+must recompute the chain**, or the trail will — correctly — fail verification.
+Never edit a trail in place; treat it as immutable.
 
 **Safe to add:** new optional fields with `None` defaults — Pydantic ignores
 unknown fields on deserialization, so the sibling toolkit continues to work.
+Note that adding a field changes every `entry_hash` (the field is included in
+the canonical form), so regenerate committed example trails when you do.
 
 **Requires coordination:** renaming a field, changing a field's type, or
 removing a field. Open an issue in both repos before making that kind of change.

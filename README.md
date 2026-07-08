@@ -17,6 +17,14 @@ leaves the machine.
 > small so every file can be explained in a few minutes. Treat it as a
 > worked example of governance-ready agent design, not a drop-in service.
 
+**This is not a framework, and it does not compete with LangGraph, CrewAI, or
+AutoGen.** It is the opposite: a single-responsibility-per-file reference you can
+read end to end in one sitting, showing what auditable, human-gated agent design
+looks like once the framework machinery is stripped away. If you need to ship,
+reach for a framework. If you need to *understand, defend, and prove* the control
+points — the audit trail, the action-space limit, the escalation gate — read
+this. See [Why not just use a framework?](#why-not-just-use-a-framework) below.
+
 The demonstration use case is a *document intake agent*: it classifies an
 incoming text document, extracts key facts into structured JSON, and summarizes
 it — and escalates to a human the moment a risk trigger fires (detected PII, a
@@ -80,6 +88,11 @@ agent-pipeline run --input examples/sample-contract.txt --non-interactive
 
 Every run writes an audit trail to `runs/<run_id>.jsonl`.
 
+When the contract example trips a risk trigger, the run pauses and a human sees
+this before anything is accepted:
+
+![Human review gate for the contract example](examples/expected-outputs/sample-contract-gate.svg)
+
 Models, timeouts, and retry behaviour live in `config/pipeline.yaml`; the
 guardrails (action space, PII patterns, thresholds, escalation rules) live in
 `config/policy.yaml`. There are **no magic numbers in the code** — change
@@ -95,7 +108,19 @@ agent-pipeline audit runs/<run_id>.jsonl
 
 This prints a summary panel (run ID, elapsed time, final status, all policy
 flags that fired) and an event table with actors, decisions, latencies, and
-flags for each step.
+flags for each step. Here is the contract example's trail (rendered without a
+live model — see [`examples/expected-outputs/`](examples/expected-outputs/)):
+
+![Rendered audit trail for the contract example](examples/expected-outputs/sample-contract-audit.svg)
+
+The trail is **tamper-evident**: every event is hash-chained to the one before
+it. Verify that a trail has not been edited, truncated, or reordered:
+
+```bash
+agent-pipeline audit runs/<run_id>.jsonl --verify
+# ✓ Audit chain intact — chain intact across 12 events
+# (exits non-zero and names the first broken event if the trail was altered)
+```
 
 For programmatic access, each line of `runs/<run_id>.jsonl` is one raw event.
 A contract run reads like this (abbreviated):
@@ -138,6 +163,10 @@ exactly the reason you'd expect.
 - **Audit events are JSONL, one per line.** Append-only, greppable, streamable,
   and trivially diffable. The schema is kept compatible with the `log_analyzer`
   in the sibling [`agentic-ai-governance-toolkit`](#related).
+- **The audit trail is tamper-evident.** Each event is hash-chained to the
+  previous one (`prev_hash`/`entry_hash`), so editing, deleting, or reordering
+  any event breaks the chain. `agent-pipeline audit --verify` proves a trail is
+  intact — turning "we log everything" into a claim you can actually check.
 - **The planner is bound to a whitelisted action space.** The planner can only
   emit `classify`/`extract`/`summarize` steps; anything else is discarded and
   logged. An agent that cannot name an unapproved capability cannot invoke one.
@@ -147,6 +176,26 @@ exactly the reason you'd expect.
   — is tested without a GPU.
 - **Everything is local.** No API keys, no data egress. The point is that
   controllable agent design does not require a hosted model.
+
+## Why not just use a framework?
+
+If you are shipping, you probably should. This repo exists to make the control
+points legible, not to replace LangGraph or CrewAI.
+
+| | This repo | Full agent framework |
+|---|---|---|
+| **Goal** | Understand & defend the control points | Build & ship agents fast |
+| **Size** | ~1.3k lines, one responsibility per file | Large; deep dependency tree |
+| **Audit trail** | First-class, tamper-evident, schema-stable | Add-on / your responsibility |
+| **Human gate** | Explicit stage you can read | Interrupt/checkpoint machinery |
+| **Action space** | Hard whitelist, violations logged | Convention, rarely enforced |
+| **Onboarding** | Readable end to end in one sitting | Learn the framework first |
+| **Right when** | Reviewing, teaching, proving governance | Production features & scale |
+
+The human-gate and reviewer patterns here map directly onto framework
+primitives (e.g. LangGraph's `interrupt`/checkpointing). The point is not that
+they are novel — it is to show, in code you can hold in your head, *where* the
+oversight belongs and *how* to prove it happened.
 
 ## Development
 
