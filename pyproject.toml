@@ -14,7 +14,7 @@ keywords = ["agents", "llm", "ollama", "governance", "audit", "human-in-the-loop
 dependencies = [
     "pydantic>=2.6",
     "pyyaml>=6.0",
-    "click>=8.1",
+    "click>=8.4.2",
     "rich>=13.7",
 ]
 # No provider SDKs: Ollama and the cloud providers (OpenAI, Gemini, Claude) are
