@@ -140,6 +140,23 @@ decisions stayed local and which went to a cloud model. Without a key, the run
 stays local; naming a provider whose key is missing fails loudly rather than
 silently downgrading.
 
+## Dashboard (optional)
+
+A small local web console visualises the audit trails — runs, per-stage
+latencies, escalation rate, policy flags, and the tamper-evidence status of each
+run — so the governance story is legible without reading JSONL.
+
+```bash
+./setup.sh        # once, for the Python side
+web/start.sh      # launches the audit API + the dashboard, opens the browser
+```
+
+It is a **Vite + React** frontend talking to a tiny standard-library Python API
+(`web/api_server.py`) that reuses the pipeline's own `read_events`/`verify_chain`
+— so the dashboard shows exactly what `agent-pipeline audit` would, never a
+second implementation. The frontend lives in `web/` and is entirely optional;
+the pipeline and CLI do not depend on it.
+
 ## Reading the audit trail
 
 Use the built-in `audit` subcommand to print a formatted summary of any run:
