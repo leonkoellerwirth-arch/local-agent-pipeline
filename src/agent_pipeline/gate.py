@@ -5,8 +5,17 @@ reason, and the raw output, then chooses to approve, reject, or edit the result.
 Nothing risky reaches the end of the pipeline without this decision — that is
 the whole point of the gate.
 
-The prompts are injected so the flow can be driven by a test with canned
-answers; there is no hidden dependency on a live terminal.
+Two gate implementations are provided:
+
+* :class:`Gate` — interactive, presents a Rich panel to a terminal operator.
+* :class:`PolicyGate` — non-interactive, auto-decides for CI/automation.
+
+Both share :class:`BaseGate` so the orchestrator's ``_resolve`` function is
+typed against a single interface. The ``actor`` attribute tells the audit log
+whether a human or a system policy made the decision.
+
+The prompts in ``Gate`` are injected so the flow can be driven by a test with
+canned answers; there is no hidden dependency on a live terminal.
 """
 
 from __future__ import annotations
@@ -18,7 +27,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-from .contracts import HumanDecision, Review, WorkResult
+from .contracts import Actor, HumanDecision, Review, WorkResult
 from .llm import parse_json
 
 
@@ -31,8 +40,24 @@ class GateOutcome:
     reason: str
 
 
-class Gate:
-    """Presents an escalation to a human and captures their decision."""
+class BaseGate:
+    """Common interface for interactive and automated gate implementations.
+
+    The ``actor`` attribute is recorded in the audit trail to distinguish a
+    human decision from a system-policy decision.
+    """
+
+    actor: Actor = Actor.HUMAN
+
+    def request(self, result: WorkResult, review: Review) -> GateOutcome:
+        """Resolve an escalated step and return the gate outcome."""
+        raise NotImplementedError
+
+
+class Gate(BaseGate):
+    """Presents an escalation to a human operator and captures their decision."""
+
+    actor: Actor = Actor.HUMAN
 
     def __init__(
         self,
@@ -83,3 +108,31 @@ class Gate:
             self._console.print("[red]Could not parse JSON; keeping original output.[/red]")
             return result
         return result.model_copy(update={"output": output, "raw": raw})
+
+
+class PolicyGate(BaseGate):
+    """A non-interactive gate for CI and automation.
+
+    Resolves escalations automatically without terminal interaction. Every
+    decision is recorded with ``actor=system`` and a ``non_interactive_mode``
+    policy flag so the audit trail clearly distinguishes a system policy from a
+    human choice.
+
+    The safe default is to reject any escalated step; pass
+    ``decision=HumanDecision.APPROVE`` only when the calling context has already
+    established that auto-approval is acceptable (e.g. an integration test that
+    deliberately exercises the post-gate path).
+    """
+
+    actor: Actor = Actor.SYSTEM
+
+    def __init__(self, decision: HumanDecision = HumanDecision.REJECT) -> None:
+        self._decision = decision
+
+    def request(self, result: WorkResult, review: Review) -> GateOutcome:
+        """Return an automatic decision without any terminal interaction."""
+        return GateOutcome(
+            decision=self._decision,
+            result=result,
+            reason="non_interactive_mode",
+        )
