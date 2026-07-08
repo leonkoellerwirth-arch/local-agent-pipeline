@@ -51,10 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `WorkResult`, `Review`, `AuditEvent` — the shared vocabulary of every stage.
 - **Config-driven policy** (`config/policy.yaml`): action space, PII patterns,
   contract-value threshold, confidence floor — all in YAML, none in code.
-- **Audit dashboard** (`web/`): optional Vite + React console showing runs,
-  per-stage latencies, escalation rate, policy flags, and each run's
-  tamper-evidence status. Served by a stdlib Python API (`web/api_server.py`)
-  that reuses `agent_pipeline.export` (built on `read_events`/`verify_chain`);
+- **Audit dashboard** (`web/`): optional Vite + React console that **runs the
+  pipeline from the browser** (pick an example or paste text → Run) with a
+  **browser-based human-review gate** (approve / reject / edit on escalation),
+  and visualises every run — per-stage latencies, escalation rate, policy flags,
+  and tamper-evidence status. Served by a stdlib Python API (`web/api_server.py`,
+  no framework/Docker) that reuses `agent_pipeline.export`/`run_pipeline`;
   launched with `web/start.sh`. Every reject path now writes a terminal `abort`
   event, so no run's trail is left without a final line.
 - **Offline test suite** (69 tests): `ScriptedBackend` in `conftest.py` fakes

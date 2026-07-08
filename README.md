@@ -142,20 +142,24 @@ silently downgrading.
 
 ## Dashboard (optional)
 
-A small local web console visualises the audit trails — runs, per-stage
-latencies, escalation rate, policy flags, and the tamper-evidence status of each
-run — so the governance story is legible without reading JSONL.
+A small local web console lets you **run the pipeline and review it from the
+browser** — no terminal needed. Pick an example (or paste text), press Run, and
+if the reviewer escalates, the run pauses and you approve / reject / edit right
+there. It also visualises every past run: per-stage latencies, escalation rate,
+policy flags, and the tamper-evidence status of each trail.
 
 ```bash
-./setup.sh        # once, for the Python side
+./setup.sh        # once, for the Python side (venv, models)
 web/start.sh      # launches the audit API + the dashboard, opens the browser
 ```
 
 It is a **Vite + React** frontend talking to a tiny standard-library Python API
-(`web/api_server.py`) that reuses the pipeline's own `read_events`/`verify_chain`
-— so the dashboard shows exactly what `agent-pipeline audit` would, never a
-second implementation. The frontend lives in `web/` and is entirely optional;
-the pipeline and CLI do not depend on it.
+(`web/api_server.py`). Reads reuse the pipeline's own `read_events`/`verify_chain`
+(so the dashboard shows exactly what `agent-pipeline audit` would), and runs go
+through the real `run_pipeline` with a browser-based gate — the same human
+oversight the CLI has, moved to the web. No web framework, no Docker. The
+frontend lives in `web/` and is entirely optional; the pipeline and CLI do not
+depend on it.
 
 ## Reading the audit trail
 
