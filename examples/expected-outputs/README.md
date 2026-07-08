@@ -12,5 +12,22 @@ here and are exactly what the test suite asserts (with mocked models).
 - `sample-contract.json` — the draft contract: PII and the contract-value
   threshold fire, the reviewer escalates, and the run pauses at the gate.
 
+## Rendered artifacts
+
+So you can see the payoff without installing Ollama, these are committed too:
+
+- `sample-report.jsonl` / `sample-contract.jsonl` — full audit trails. They are
+  hash-chained; verify them with `agent-pipeline audit <file> --verify`.
+- `sample-contract-audit.svg` — the `agent-pipeline audit` render of the
+  contract trail.
+- `sample-contract-gate.svg` — the human-review gate panel.
+
+These were produced by `scripts/render_examples.py`, which drives the real
+pipeline with a **mocked** model (the same approach as the test suite). The
+policy flags, escalation decision, and hash chain are genuine; only the model's
+free-text output is canned, and it is stored only as a hash. Regenerate them
+with `python scripts/render_examples.py`.
+
 If you run the examples against a live Ollama model, expect the `flags` and the
-escalation behaviour below to match; the free-text content will differ.
+escalation behaviour to match; the free-text content (and therefore the content
+hashes) will differ.
