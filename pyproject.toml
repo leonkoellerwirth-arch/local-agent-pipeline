@@ -12,7 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "Leon Köllerwirth Hlihel" }]
 keywords = ["agents", "llm", "ollama", "governance", "audit", "human-in-the-loop"]
 dependencies = [
-    "pydantic>=2.6",
+    "pydantic>=2.13.4",
     "pyyaml>=6.0",
     "click>=8.1",
     "rich>=13.7",
