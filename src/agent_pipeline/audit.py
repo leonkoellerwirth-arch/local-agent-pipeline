@@ -14,11 +14,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
 from .contracts import Actor, AuditEvent
 from .llm import StageTrace
+
+# The chain starts from a fixed genesis value so the very first event still has
+# a well-defined predecessor to hash against.
+GENESIS_HASH = "sha256:genesis"
 
 
 def content_hash(text: str | None) -> str | None:
@@ -26,6 +31,18 @@ def content_hash(text: str | None) -> str | None:
     if text is None:
         return None
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def chain_hash(event: AuditEvent) -> str:
+    """Compute an event's ``entry_hash`` from its content and its ``prev_hash``.
+
+    The event's ``prev_hash`` must already be set. Serialization is canonical
+    (sorted keys) and excludes ``entry_hash`` itself, so the hash is stable and
+    self-referential-free.
+    """
+    payload = event.model_dump(mode="json", exclude={"entry_hash"})
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 class AuditLog:
@@ -36,6 +53,7 @@ class AuditLog:
         self.events: list[AuditEvent] = []
         self._dump_plaintext = bool(config.get("dump_plaintext", False))
         self._seq = 0
+        self._last_hash = GENESIS_HASH
 
         log_dir = Path(config.get("log_dir", "runs"))
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -50,7 +68,15 @@ class AuditLog:
         return self._path
 
     def record(self, event: AuditEvent) -> AuditEvent:
-        """Append one already-built event to the trail."""
+        """Chain, append, and flush one event.
+
+        The event is linked to its predecessor (``prev_hash``) and sealed with
+        its own ``entry_hash`` before being written, so the on-disk trail is
+        tamper-evident.
+        """
+        event.prev_hash = self._last_hash
+        event.entry_hash = chain_hash(event)
+        self._last_hash = event.entry_hash
         self._file.write(event.model_dump_json() + "\n")
         self._file.flush()
         self.events.append(event)
@@ -145,3 +171,34 @@ def read_events(path: str | Path) -> list[AuditEvent]:
         if line.strip():
             events.append(AuditEvent.model_validate(json.loads(line)))
     return events
+
+
+@dataclass(frozen=True)
+class ChainVerification:
+    """Result of verifying an audit trail's hash chain."""
+
+    ok: bool
+    broken_index: int | None = None
+    reason: str = ""
+
+
+def verify_chain(events: list[AuditEvent]) -> ChainVerification:
+    """Verify that a trail's hash chain is intact.
+
+    Walks the events, recomputing each ``entry_hash`` and checking that every
+    ``prev_hash`` matches the predecessor's ``entry_hash``. Returns the index of
+    the first event that fails, if any — that is where the trail was edited,
+    truncated, or reordered.
+    """
+    expected_prev = GENESIS_HASH
+    for i, event in enumerate(events):
+        if event.prev_hash != expected_prev:
+            return ChainVerification(
+                False, i, f"event {i} prev_hash does not match the previous event"
+            )
+        if event.entry_hash != chain_hash(event):
+            return ChainVerification(
+                False, i, f"event {i} content does not match its entry_hash (tampered)"
+            )
+        expected_prev = event.entry_hash
+    return ChainVerification(True, None, f"chain intact across {len(events)} events")

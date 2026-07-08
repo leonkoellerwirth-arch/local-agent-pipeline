@@ -8,7 +8,8 @@ faked model and canned gate answers — no Ollama, no terminal.
 CLI subcommands
 ---------------
 ``agent-pipeline run``   — run a document through the pipeline.
-``agent-pipeline audit`` — read a JSONL trail and print a rich summary table.
+``agent-pipeline audit`` — read a JSONL trail and print a rich summary table,
+                           or verify its tamper-evident hash chain (--verify).
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .audit import AuditLog, read_events
+from .audit import AuditLog, read_events, verify_chain
 from .contracts import (
     Actor,
     AuditEvent,
@@ -339,13 +340,29 @@ def _render_audit_trail(console: Console, events: list[AuditEvent]) -> None:
 
 @main.command(name="audit")
 @click.argument("trail", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def audit_cmd(trail: Path) -> None:
-    """Print a rich summary of a JSONL audit trail.
+@click.option(
+    "--verify",
+    is_flag=True,
+    default=False,
+    help="Verify the tamper-evident hash chain instead of printing the summary.",
+)
+def audit_cmd(trail: Path, verify: bool) -> None:
+    """Print a rich summary of a JSONL audit trail, or verify its hash chain.
 
     TRAIL is the path to a run's .jsonl file (e.g. runs/20240101T120000-abc123.jsonl).
+    With --verify, exits non-zero if the chain has been edited, truncated, or
+    reordered.
     """
     console = Console()
     events = read_events(trail)
+    if verify:
+        result = verify_chain(events)
+        if result.ok:
+            console.print(f"[green]✓ Audit chain intact[/green] — {result.reason}")
+        else:
+            console.print(f"[red]✗ Audit chain BROKEN[/red] — {result.reason}")
+            raise SystemExit(1)
+        return
     _render_audit_trail(console, events)
 
 

@@ -108,6 +108,13 @@ class AuditEvent(BaseModel):
 
     Prompts and outputs are stored as hashes here; the optional plaintext dump
     lives in a separate, configurable directory (see the README's privacy note).
+
+    ``prev_hash`` and ``entry_hash`` chain the events together: each event's
+    hash covers its own content *and* the previous event's hash, so the trail is
+    append-only and tamper-evident. Editing, deleting, or reordering any event
+    breaks the chain from that point on (verified by ``audit.verify_chain``).
+    These are populated by ``AuditLog``; they are ``None`` on a free-standing
+    event that has not been written to a log.
     """
 
     timestamp: datetime = Field(default_factory=_utcnow)
@@ -122,3 +129,5 @@ class AuditEvent(BaseModel):
     confidence: float | None = None
     latency_ms: int | None = None
     policy_flags: list[str] = Field(default_factory=list)
+    prev_hash: str | None = Field(default=None, description="entry_hash of the previous event.")
+    entry_hash: str | None = Field(default=None, description="Hash of this event + prev_hash.")
