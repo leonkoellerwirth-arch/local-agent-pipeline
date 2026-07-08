@@ -1,0 +1,50 @@
+# Changelog
+
+All notable changes to this project will be documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-07-08
+
+### Added
+
+- **Pipeline orchestrator** (`cli.py`): `Task → Planner → Worker → Reviewer →
+  Human Gate → Output` flow with a `PipelineResult` dataclass capturing status
+  and accepted results.
+- **Planner** (`planner.py`): decomposes a document task into at most five typed
+  steps; enforces the action-space whitelist from `policy.yaml` at generation
+  time, discarding and logging any step outside it.
+- **Worker** (`worker.py`): executes one plan step, returns validated
+  `WorkResult` JSON; retries once with error feedback on parse or validation
+  failure, then aborts.
+- **Reviewer** (`reviewer.py`): independent second model plus deterministic
+  heuristics (PII regex, contract-value threshold, confidence floor); verdict
+  is `pass` / `escalate` / `reject`.
+- **Human gate** (`gate.py`): pauses on `escalate`; operator approves, rejects,
+  or edits the result via a Rich terminal panel. Gate prompts are injectable so
+  tests drive the full escalation path offline.
+- **Policy gate** (`gate.py`): `PolicyGate` for CI/automation — auto-resolves
+  escalations without terminal interaction; records `actor=system` and
+  `non_interactive_mode` in the audit trail.
+- **Audit log** (`audit.py`): one JSONL event per pipeline transition; prompts
+  and outputs stored as `sha256:` hashes; optional plaintext dump to a
+  configurable directory for debugging (off by default).
+- **`agent-pipeline run`** CLI command with `--non-interactive` flag.
+- **`agent-pipeline audit`** CLI command: reads a JSONL trail and prints a Rich
+  summary panel and event table (actors, decisions, policy flags, latencies).
+- **Pydantic contracts** (`contracts.py`): `Task`, `Plan`, `PlanStep`,
+  `WorkResult`, `Review`, `AuditEvent` — the shared vocabulary of every stage.
+- **Config-driven policy** (`config/policy.yaml`): action space, PII patterns,
+  contract-value threshold, confidence floor — all in YAML, none in code.
+- **Offline test suite** (30 tests): `ScriptedBackend` in `conftest.py` fakes
+  every LLM call so the suite runs deterministically without Ollama.
+- Example documents in `examples/`: a benign operations report and a
+  contract that deliberately trips all risk triggers.
+- CI workflow (`.github/workflows/ci.yml`): ruff lint/format + pytest on every
+  push and pull request.
+
+[Unreleased]: https://github.com/leonkoellerwirth-arch/local-agent-pipeline/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/leonkoellerwirth-arch/local-agent-pipeline/releases/tag/v0.1.0
