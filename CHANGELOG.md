@@ -35,7 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tamper-evident audit trail** (`audit.py`): events are hash-chained
   (`prev_hash`/`entry_hash`); `verify_chain` detects any edit, deletion, or
   reordering and names the first broken event.
-- **`agent-pipeline run`** CLI command with `--non-interactive` flag.
+- **Optional external providers** (`llm.py`): any role can be routed to OpenAI,
+  Gemini, or Anthropic Claude via a `provider:model` ref in `config/pipeline.yaml`
+  (e.g. `reviewer: openai:gpt-4o`); keys come from `.env` (see `.env.example`).
+  Local Ollama remains the default; cloud providers are called over plain HTTP
+  with no added SDK dependencies, and each decision's provider/model is recorded
+  in the audit trail. Removed the `ollama` package dependency (now called via
+  its REST API).
+- **`agent-pipeline run`** CLI command with `--non-interactive` flag; loads
+  `.env` automatically and fails loudly on a missing provider key.
 - **`agent-pipeline audit`** CLI command: reads a JSONL trail and prints a Rich
   summary panel and event table (actors, decisions, policy flags, latencies);
   `--verify` checks the tamper-evidence chain and exits non-zero if broken.

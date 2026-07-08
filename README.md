@@ -10,8 +10,10 @@ oversight as first-class features — not afterthoughts.
 It demonstrates how to build AI agents that are **controllable from the start**:
 a planner/worker/reviewer pattern, a whitelisted action space, structured audit
 logging of every step, policy guardrails, and a human-in-the-loop gate for
-risky actions. Everything runs locally on [Ollama](https://ollama.com); no data
-leaves the machine.
+risky actions. It runs fully locally on [Ollama](https://ollama.com) by default
+— nothing leaves the machine unless you explicitly route a role to an external
+provider for stronger review (see [External review](#external-review-optional)),
+and when you do, the audit trail records exactly which model decided.
 
 > This is a **reference pattern**, not a production system. It is deliberately
 > small so every file can be explained in a few minutes. Treat it as a
@@ -65,13 +67,23 @@ happens off the record.
 
 ## Quickstart
 
+**One command** (macOS/Linux): creates a virtualenv, installs the package, pulls
+the Ollama models, runs the tests, and does a demo — after installing
+[Ollama](https://ollama.com/download):
+
+```bash
+./setup.sh                 # add --skip-models or --no-demo to trim it
+```
+
+Or do it by hand:
+
 ```bash
 # 1. Install Ollama and pull the default models (small, run on modest hardware)
 #    https://ollama.com/download
 ollama pull llama3.2
 ollama pull llama3.1
 
-# 2. Install the pipeline
+# 2. Install the pipeline (needs Python >= 3.11)
 pip install -e .
 
 # 3. Run the benign example — it passes straight through
@@ -97,6 +109,36 @@ Models, timeouts, and retry behaviour live in `config/pipeline.yaml`; the
 guardrails (action space, PII patterns, thresholds, escalation rules) live in
 `config/policy.yaml`. There are **no magic numbers in the code** — change
 behaviour by editing YAML.
+
+## External review (optional)
+
+Every role runs on a local Ollama model by default. To route a role — typically
+the reviewer — to a stronger external model, name the provider in
+`config/pipeline.yaml` and put the key in `.env`:
+
+```yaml
+# config/pipeline.yaml
+models:
+  planner: llama3.2
+  worker: llama3.2
+  reviewer: openai:gpt-4o        # escalated review on a frontier model
+```
+
+```bash
+cp .env.example .env             # setup.sh does this for you
+# set the matching key in .env:
+#   OPENAI_API_KEY=...     → openai:<model>
+#   GEMINI_API_KEY=...     → gemini:<model>
+#   ANTHROPIC_API_KEY=...  → claude:<model>
+```
+
+`agent-pipeline run` loads `.env` automatically. Any role accepts `ollama:`
+(default), `openai:`, `gemini:`, or `claude:`. Providers are called over plain
+HTTP — no SDKs enter the dependency tree. Because the audit trail's `model`
+field carries the full `provider:model` ref, you can see at a glance which
+decisions stayed local and which went to a cloud model. Without a key, the run
+stays local; naming a provider whose key is missing fails loudly rather than
+silently downgrading.
 
 ## Reading the audit trail
 
@@ -174,8 +216,11 @@ exactly the reason you'd expect.
   backend, so the suite runs deterministically in CI with the model faked. The
   governance-critical logic — policy heuristics, escalation, audit completeness
   — is tested without a GPU.
-- **Everything is local.** No API keys, no data egress. The point is that
-  controllable agent design does not require a hosted model.
+- **Local by default, external review is opt-in.** No API keys and no data
+  egress until you deliberately route a role to a cloud provider. When you do,
+  it is one config line, the key lives in `.env`, and the audit trail records
+  which provider/model made each decision — so "we sent this to OpenAI" is a
+  provable, reviewable fact rather than a hidden one.
 
 ## Why not just use a framework?
 
@@ -185,7 +230,7 @@ points legible, not to replace LangGraph or CrewAI.
 | | This repo | Full agent framework |
 |---|---|---|
 | **Goal** | Understand & defend the control points | Build & ship agents fast |
-| **Size** | ~1.3k lines, one responsibility per file | Large; deep dependency tree |
+| **Size** | ~1.5k lines, one responsibility per file, zero provider SDKs | Large; deep dependency tree |
 | **Audit trail** | First-class, tamper-evident, schema-stable | Add-on / your responsibility |
 | **Human gate** | Explicit stage you can read | Interrupt/checkpoint machinery |
 | **Action space** | Hard whitelist, violations logged | Convention, rarely enforced |

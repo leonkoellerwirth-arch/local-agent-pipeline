@@ -14,6 +14,7 @@ CLI subcommands
 
 from __future__ import annotations
 
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -38,7 +39,7 @@ from .contracts import (
     WorkResult,
 )
 from .gate import BaseGate, Gate, PolicyGate
-from .llm import LLMClient, StageTrace
+from .llm import LLMClient, LLMError, StageTrace
 from .planner import Planner
 from .reviewer import Reviewer
 from .worker import Worker, WorkerError
@@ -170,6 +171,23 @@ def _load_yaml(path: str) -> dict:
     return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
 
+def _load_dotenv(path: Path) -> None:
+    """Load ``KEY=VALUE`` lines from a .env file into the environment.
+
+    Existing environment variables win, so real secrets always override the
+    file. Only needed when a role is routed to an external provider; local runs
+    never read a key.
+    """
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 @click.group()
 def main() -> None:
     """agent-pipeline — a minimal, auditable, local multi-agent pipeline."""
@@ -192,6 +210,7 @@ def main() -> None:
 def run(input_path: str, config_path: str, policy_path: str, non_interactive: bool) -> None:
     """Run a document through the pipeline."""
     console = Console()
+    _load_dotenv(Path(".env"))  # make any external-provider keys available
     pipeline_cfg = _load_yaml(config_path)
     policy_cfg = _load_yaml(policy_path)
 
@@ -205,14 +224,18 @@ def run(input_path: str, config_path: str, policy_path: str, non_interactive: bo
     llm = LLMClient(pipeline_cfg["llm"])
     gate: BaseGate = PolicyGate() if non_interactive else Gate(console)
     with AuditLog(run_id, pipeline_cfg["audit"]) as audit:
-        result = run_pipeline(
-            task,
-            pipeline_cfg=pipeline_cfg,
-            policy_cfg=policy_cfg,
-            llm=llm,
-            audit=audit,
-            gate=gate,
-        )
+        try:
+            result = run_pipeline(
+                task,
+                pipeline_cfg=pipeline_cfg,
+                policy_cfg=policy_cfg,
+                llm=llm,
+                audit=audit,
+                gate=gate,
+            )
+        except LLMError as exc:
+            console.print(f"[red]Model call failed:[/red] {exc}")
+            raise SystemExit(1) from exc
         _print_summary(console, result, audit.path)
 
 

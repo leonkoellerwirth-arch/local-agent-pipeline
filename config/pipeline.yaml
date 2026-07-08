@@ -3,10 +3,19 @@
 # hardware. The reviewer intentionally uses a different model from the worker
 # so the check is not the checker grading its own homework.
 
+# Each role's model is addressed as `provider:model`. With no prefix the
+# provider is `ollama` (local), so `llama3.2` means `ollama:llama3.2`. To route
+# a role to an external provider for stronger review, prefix it and set the
+# matching key in `.env` (see `.env.example`):
+#   reviewer: openai:gpt-4o
+#   reviewer: gemini:gemini-1.5-pro
+#   reviewer: claude:claude-sonnet-4-5
+# Local is the default; external providers are opt-in and recorded in the audit
+# trail (the `model` field shows exactly which model made each decision).
 models:
   planner: llama3.2
   worker: llama3.2
-  reviewer: llama3.1   # independent second opinion
+  reviewer: llama3.1   # independent second opinion (a different local model)
 
 llm:
   host: http://localhost:11434   # default Ollama endpoint
