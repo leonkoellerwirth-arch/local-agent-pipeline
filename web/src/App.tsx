@@ -1,7 +1,9 @@
 import {
   Activity,
+  BookOpen,
   CheckCircle2,
   Clock,
+  LayoutDashboard,
   Loader2,
   Play,
   RefreshCw,
@@ -10,6 +12,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type AuditEvent = {
   timestamp: string;
@@ -351,7 +355,56 @@ function RunPanel({ onDone }: { onDone: () => void }) {
   );
 }
 
+type Doc = { id: string; title: string; markdown: string };
+
+/** In-app documentation so everything lives in one place. */
+function DocsView() {
+  const [docs, setDocs] = useState<Doc[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/docs")
+      .then((r) => r.json())
+      .then((d: Doc[]) => {
+        setDocs(d);
+        setActiveId(d[0]?.id ?? null);
+      })
+      .catch(() => setDocs([]));
+  }, []);
+
+  const active = docs.find((d) => d.id === activeId) ?? null;
+
+  return (
+    <div className="grid gap-4 px-6 pb-10 lg:grid-cols-[220px_1fr]">
+      <div className="space-y-1">
+        <h2 className="px-1 text-xs uppercase tracking-wide text-slate-500">Documentation</h2>
+        {docs.map((d) => (
+          <button
+            key={d.id}
+            onClick={() => setActiveId(d.id)}
+            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
+              d.id === activeId
+                ? "bg-white/[0.08] text-slate-100"
+                : "text-slate-400 hover:bg-white/[0.04]"
+            }`}
+          >
+            {d.title}
+          </button>
+        ))}
+      </div>
+      <article className="markdown min-w-0 rounded-xl border border-white/10 bg-white/[0.02] p-6">
+        {active ? (
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{active.markdown}</ReactMarkdown>
+        ) : (
+          <p className="text-sm text-slate-500">No documentation found.</p>
+        )}
+      </article>
+    </div>
+  );
+}
+
 export default function App() {
+  const [tab, setTab] = useState<"console" | "docs">("console");
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -401,21 +454,46 @@ export default function App() {
               local-agent-pipeline — run it, review it, and see every decision proven intact
             </p>
           </div>
-          <button
-            onClick={load}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-slate-300 hover:bg-white/[0.07]"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+              <button
+                onClick={() => setTab("console")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm ${
+                  tab === "console" ? "bg-white/10 text-slate-100" : "text-slate-400"
+                }`}
+              >
+                <LayoutDashboard className="h-4 w-4" /> Console
+              </button>
+              <button
+                onClick={() => setTab("docs")}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm ${
+                  tab === "docs" ? "bg-white/10 text-slate-100" : "text-slate-400"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" /> Docs
+              </button>
+            </div>
+            {tab === "console" && (
+              <button
+                onClick={load}
+                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-slate-300 hover:bg-white/[0.07]"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      <div className="px-6 py-5">
-        <RunPanel onDone={load} />
-      </div>
+      {tab === "docs" && <DocsView />}
+      {tab === "console" && (
+        <>
+          <div className="px-6 py-5">
+            <RunPanel onDone={load} />
+          </div>
 
-      {error && (
+          {error && (
         <div className="mx-6 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">
           Could not reach the audit API: {error}. Start everything with <code>web/start.sh</code>.
         </div>
@@ -492,7 +570,9 @@ export default function App() {
         </div>
 
         {selected && <RunDetail run={selected} />}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

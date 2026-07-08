@@ -57,8 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and visualises every run — per-stage latencies, escalation rate, policy flags,
   and tamper-evidence status. Served by a stdlib Python API (`web/api_server.py`,
   no framework/Docker) that reuses `agent_pipeline.export`/`run_pipeline`;
-  launched with `web/start.sh`. Every reject path now writes a terminal `abort`
-  event, so no run's trail is left without a final line.
+  launched with `web/start.sh` (or `./start.sh` from the repo root). Includes an
+  in-app **Docs** tab that renders the project docs (README, SOP, Contributing,
+  Changelog), so runs, results, and documentation live in one place. Every
+  reject path now writes a terminal `abort` event, so no run's trail is left
+  without a final line.
 - **Offline test suite** (69 tests): `ScriptedBackend` in `conftest.py` fakes
   every LLM call so the suite runs deterministically without Ollama.
 - Example documents in `examples/`: a benign operations report and a

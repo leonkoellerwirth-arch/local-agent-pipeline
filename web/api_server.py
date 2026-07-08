@@ -38,6 +38,14 @@ RUN_DIRS = [Path(os.environ.get("RUNS_DIR", ROOT / "runs")), ROOT / "examples" /
 EXAMPLES_DIR = ROOT / "examples"
 DECISION_TIMEOUT_S = 900  # if nobody answers the review, fail safe (reject)
 
+# Project docs surfaced inside the app, so everything is visible in one place.
+DOCS = [
+    ("readme", "Overview", ROOT / "README.md"),
+    ("sop", "Maintainer SOP", ROOT / "docs" / "SOP.md"),
+    ("contributing", "Contributing", ROOT / "CONTRIBUTING.md"),
+    ("changelog", "Changelog", ROOT / "CHANGELOG.md"),
+]
+
 
 @dataclass
 class RunSession:
@@ -183,6 +191,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, collect(RUN_DIRS))
         elif self.path == "/api/examples":
             self._send(200, self._examples())
+        elif self.path == "/api/docs":
+            self._send(200, self._docs())
         elif self.path.startswith("/api/run/"):
             run_id = self.path[len("/api/run/") :]
             session = SESSIONS.get(run_id)
@@ -223,6 +233,15 @@ class Handler(BaseHTTPRequestHandler):
         for path in sorted(EXAMPLES_DIR.glob("*.txt")):
             text = path.read_text(encoding="utf-8")
             items.append({"id": path.stem, "name": path.stem, "preview": text[:160].strip()})
+        return items
+
+    def _docs(self) -> list[dict]:
+        items = []
+        for doc_id, title, path in DOCS:
+            if path.is_file():
+                items.append(
+                    {"id": doc_id, "title": title, "markdown": path.read_text(encoding="utf-8")}
+                )
         return items
 
     def log_message(self, *_args: object) -> None:  # keep the console quiet
