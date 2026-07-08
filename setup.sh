@@ -103,22 +103,35 @@ elif ! command -v ollama >/dev/null 2>&1; then
   warn "Ollama not found — skipping model download."
   warn "Install it from https://ollama.com/download, then re-run ./setup.sh"
 else
-  # Read the model names straight from config so this never drifts from the app.
+  # Read the model names straight from config (only the local Ollama ones —
+  # roles routed to a cloud provider have nothing to pull).
   MODELS=$("$VENV_PY" - <<'PY'
 import yaml
 cfg = yaml.safe_load(open("config/pipeline.yaml"))
-print(" ".join(sorted(set(cfg["models"].values()))))
+out = []
+for ref in set(cfg["models"].values()):
+    provider, _, name = ref.partition(":")
+    if provider in ("openai", "gemini", "claude"):
+        continue
+    out.append(name if provider == "ollama" and name else ref)
+print(" ".join(sorted(out)))
 PY
 )
-  step "Pulling Ollama models: $MODELS"
-  MODELS_READY=1
-  for m in $MODELS; do
-    if ! ollama pull "$m"; then
-      warn "Could not pull '$m' (is the Ollama server running?). Continuing."
-      MODELS_READY=0
-    fi
-  done
-  [ "$MODELS_READY" -eq 1 ] && ok "Models ready"
+  if [ -z "$MODELS" ]; then
+    ok "No local models to pull (all roles use external providers)."
+    MODELS_READY=1
+  else
+    step "Pulling Ollama models: $MODELS"
+    for m in $MODELS; do
+      ollama pull "$m" || warn "pull of '$m' reported an error (server running?) — re-checking."
+    done
+    # Trust presence, not the pull exit code (which can flake): re-check the list.
+    MODELS_READY=1
+    for m in $MODELS; do
+      ollama list 2>/dev/null | grep -q "${m%%:*}" || { warn "'$m' not available."; MODELS_READY=0; }
+    done
+    [ "$MODELS_READY" -eq 1 ] && ok "Models ready"
+  fi
 fi
 
 # --- 6. smoke test (never needs Ollama) ----------------------------------
