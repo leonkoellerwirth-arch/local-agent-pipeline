@@ -23,3 +23,6 @@ runs/
 
 # OS
 .DS_Store
+
+# Internal project brief — not for the public repo
+CLAUDE-CODE-BRIEFING-*.md

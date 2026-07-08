@@ -28,3 +28,25 @@ jobs:
       - name: Test (pytest)
         # LLM calls are mocked; the suite never contacts Ollama.
         run: pytest -q
+
+  web:
+    # The optional dashboard is type-checked and built so it can't rot silently.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check and build
+        run: npm run build
