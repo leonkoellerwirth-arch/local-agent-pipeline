@@ -13,7 +13,7 @@ authors = [{ name = "Leon Köllerwirth Hlihel" }]
 keywords = ["agents", "llm", "ollama", "governance", "audit", "human-in-the-loop"]
 dependencies = [
     "pydantic>=2.6",
-    "pyyaml>=6.0",
+    "pyyaml>=6.0.3",
     "click>=8.1",
     "rich>=13.7",
 ]
