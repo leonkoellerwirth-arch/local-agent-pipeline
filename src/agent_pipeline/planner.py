@@ -55,18 +55,38 @@ class Planner:
         return Plan(steps=steps), discarded, trace
 
     def _validate(self, payload: dict) -> tuple[list[PlanStep], list[str]]:
-        """Keep whitelisted steps (up to the cap); collect the rest as discarded."""
+        """Keep whitelisted steps (up to the cap); collect the rest as discarded.
+
+        Models are inconsistent about the step shape: some return objects
+        (``{"action": "classify", ...}``), some a plain list of action strings
+        (``["classify", "extract"]``). Both are accepted; anything else is
+        discarded rather than crashing the run.
+        """
+        raw_steps = payload.get("steps", [])
+        if isinstance(raw_steps, dict):
+            raw_steps = [raw_steps]
+        elif not isinstance(raw_steps, list):
+            raw_steps = []
+
         steps: list[PlanStep] = []
         discarded: list[str] = []
-        for raw in payload.get("steps", []):
-            action = str(raw.get("action", "")).strip().lower()
+        for raw in raw_steps:
+            if isinstance(raw, str):
+                action, description = raw.strip().lower(), ""
+            elif isinstance(raw, dict):
+                action = str(raw.get("action", "")).strip().lower()
+                description = str(raw.get("description", "")).strip()
+            else:
+                discarded.append("<invalid>")
+                continue
+
             if action in self._allowed:
                 if len(steps) < _MAX_STEPS:
                     steps.append(
                         PlanStep(
                             step_id=f"s{len(steps) + 1}",
                             action=Action(action),
-                            description=str(raw.get("description", "")).strip(),
+                            description=description,
                         )
                     )
             else:

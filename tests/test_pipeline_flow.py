@@ -86,3 +86,19 @@ def test_worker_retry_recovers_after_one_bad_response(tmp_path, pipeline_cfg, po
     result, _ = _run(tmp_path, backend, pipeline_cfg, policy_cfg)
     assert result.status == "completed"
     assert len(result.results) == 1
+
+
+def test_planner_accepts_string_form_steps():
+    """Some models return steps as bare strings, not objects — must not crash."""
+    import json
+
+    from agent_pipeline.llm import LLMClient
+    from agent_pipeline.planner import Planner
+
+    def backend(model, prompt, json_mode):
+        return json.dumps({"steps": ["classify", "delete", "summarize"]})
+
+    planner = Planner(LLMClient({}, backend=backend), "m", ["classify", "extract", "summarize"])
+    plan, discarded, _ = planner.make_plan(Task(run_id="r", input_path="x", content="hi"))
+    assert [s.action.value for s in plan.steps] == ["classify", "summarize"]
+    assert "delete" in discarded  # outside the whitelist, dropped not crashed
