@@ -1,5 +1,9 @@
 # local-agent-pipeline
 
+[![CI](https://github.com/leonkoellerwirth-arch/local-agent-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/leonkoellerwirth-arch/local-agent-pipeline/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
 A minimal, fully local multi-agent pipeline that treats auditability and human
 oversight as first-class features — not afterthoughts.
 
@@ -47,7 +51,7 @@ happens off the record.
 | Planner | `planner.py` | Decompose the task into ≤5 typed steps; discard any action outside the whitelist. |
 | Worker | `worker.py` | Execute one step; return validated JSON; one retry on parse failure, then abort. |
 | Reviewer | `reviewer.py` | Independent second model + policy heuristics; verdict is `pass`/`escalate`/`reject`. |
-| Gate | `gate.py` | Pause on `escalate`; a human approves, rejects, or edits. |
+| Gate | `gate.py` | Pause on `escalate`; a human approves, rejects, or edits. `PolicyGate` for CI. |
 | Audit | `audit.py` | One JSONL event per transition. |
 | Contracts | `contracts.py` | Pydantic models that every stage speaks in. |
 
@@ -68,6 +72,10 @@ agent-pipeline run --input examples/sample-report.txt
 # 4. Run the contract example — it deliberately trips the risk triggers
 #    (PII + a contract value over the threshold) and pauses at the human gate
 agent-pipeline run --input examples/sample-contract.txt
+
+# 5. Run the same example non-interactively (for CI or scripts).
+#    Escalations are auto-rejected; the audit trail records actor=system.
+agent-pipeline run --input examples/sample-contract.txt --non-interactive
 ```
 
 Every run writes an audit trail to `runs/<run_id>.jsonl`.
@@ -79,9 +87,18 @@ behaviour by editing YAML.
 
 ## Reading the audit trail
 
-Each line of `runs/<run_id>.jsonl` is one event: who acted, with which model,
-how long it took, and what was decided. A contract run reads like this
-(abbreviated):
+Use the built-in `audit` subcommand to print a formatted summary of any run:
+
+```bash
+agent-pipeline audit runs/<run_id>.jsonl
+```
+
+This prints a summary panel (run ID, elapsed time, final status, all policy
+flags that fired) and an event table with actors, decisions, latencies, and
+flags for each step.
+
+For programmatic access, each line of `runs/<run_id>.jsonl` is one raw event.
+A contract run reads like this (abbreviated):
 
 ```jsonc
 {"actor":"system",  "action":"run_start"}
@@ -93,10 +110,17 @@ how long it took, and what was decided. A contract run reads like this
 {"actor":"system",  "action":"run_complete", "decision":"completed"}
 ```
 
-You can reconstruct the entire run from this: the reviewer flagged PII and a
-contract value over the threshold, escalated, and a human approved it before the
-result was accepted. The full JSONL schema is the `AuditEvent` model in
-`contracts.py`.
+When `--non-interactive` is used, `actor` is `system` instead of `human` and
+`policy_flags` includes `non_interactive_mode`, making automated decisions
+unambiguous in the trail:
+
+```jsonc
+{"actor":"system", "action":"gate_decision", "step_id":"s1", "decision":"reject",
+ "policy_flags":["pii:email","contract_value_exceeds_threshold","non_interactive_mode"]}
+```
+
+You can reconstruct the entire run from these events. The full JSONL schema is
+the `AuditEvent` model in `contracts.py`.
 
 ### A note on privacy
 
@@ -134,6 +158,11 @@ pytest -q
 
 CI (`.github/workflows/ci.yml`) runs ruff and pytest on every push and pull
 request. The suite does not depend on a local model.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development setup,
+commit conventions, and PR expectations. Maintainers: [docs/SOP.md](docs/SOP.md)
+covers adding policy rules, extending the action space, and keeping the audit
+schema compatible with the sibling toolkit.
 
 ## Related
 
