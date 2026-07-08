@@ -121,6 +121,9 @@ def run_pipeline(
 
         outcome = _resolve(step, result, review, gate, audit)
         if outcome is None:
+            # Every run ends with an explicit terminal event, so a trail is never
+            # just "cut off" — an aborted run says so on its last line.
+            audit.record_event(Actor.SYSTEM, "abort", step_id=step.step_id, decision="rejected")
             return PipelineResult(task.run_id, "aborted", plan, accepted, note="rejected")
         accepted.append(outcome)
 
@@ -139,8 +142,7 @@ def _resolve(
     if review.decision is Decision.PASS:
         return result
     if review.decision is Decision.REJECT:
-        audit.record_event(Actor.SYSTEM, "abort", step_id=step.step_id, decision="rejected")
-        return None
+        return None  # run_pipeline records the terminal abort event
 
     # Decision.ESCALATE → gate (human or policy)
     gate_outcome = gate.request(result, review)
