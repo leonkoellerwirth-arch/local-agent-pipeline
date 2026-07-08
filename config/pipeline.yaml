@@ -1,0 +1,24 @@
+# Pipeline configuration: models per role, timeouts, retry behaviour.
+# Defaults are small, broadly available models so the repo runs on modest
+# hardware. The reviewer intentionally uses a different model from the worker
+# so the check is not the checker grading its own homework.
+
+models:
+  planner: llama3.2
+  worker: llama3.2
+  reviewer: llama3.1   # independent second opinion
+
+llm:
+  host: http://localhost:11434   # default Ollama endpoint
+  timeout_s: 120
+  temperature: 0.0               # deterministic-ish; this is extraction, not prose
+  max_retries: 1                 # one retry with error feedback, then abort
+
+audit:
+  # Directory for the JSONL trail. One file per run: <log_dir>/<run_id>.jsonl
+  log_dir: runs
+  # When true, prompts and outputs are also written as plaintext next to the
+  # trail. Off by default: the trail keeps only hashes so logs can be shared
+  # without leaking document contents. See README "A note on privacy".
+  dump_plaintext: false
+  dump_dir: runs/dumps
