@@ -1,0 +1,21 @@
+Quarterly Operations Summary — Internal Distribution
+
+This report covers the operations team's activity for the most recent quarter.
+Overall throughput improved modestly compared with the previous period, driven
+mainly by shorter turnaround on routine intake requests and fewer handoffs
+between teams.
+
+Highlights:
+- Routine request handling time fell by roughly one fifth quarter over quarter.
+- The backlog of low-priority items was cleared ahead of the internal target.
+- No customer-impacting incidents were recorded during the period.
+
+Areas to watch:
+- Onboarding for new team members remains slower than we would like and depends
+  on a small number of experienced reviewers.
+- Documentation for the intake process is uneven and would benefit from a single
+  owner.
+
+Recommendations for next quarter focus on spreading review knowledge across more
+of the team and consolidating the intake documentation into one place. None of
+the items in this report require escalation or sign-off beyond the team lead.

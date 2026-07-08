@@ -1,0 +1,28 @@
+SERVICE AGREEMENT (DRAFT)
+
+This draft service agreement is made between Northwind Analytics GmbH (the
+"Client") and Baltic Freight Solutions Ltd (the "Contractor"). All names,
+figures, and contact details below are fictional and used for demonstration
+only.
+
+1. Scope
+The Contractor will provide data-processing and reporting services to the Client
+for an initial term of twelve months.
+
+2. Fees
+The total contract value for the initial term is EUR 150,000, payable in four
+equal quarterly instalments of EUR 37,500.
+
+3. Payment details
+Payments shall be made to the Contractor's account:
+IBAN: DE89 3704 0044 0532 0130 00
+
+4. Contact
+Questions regarding invoicing should be directed to the Contractor's billing
+desk at billing@example-contractor.test or by phone at +49 30 1234567.
+
+5. Confidentiality
+Both parties agree to keep the terms of this agreement confidential.
+
+This document is a draft and is not binding until signed by authorised
+representatives of both parties.

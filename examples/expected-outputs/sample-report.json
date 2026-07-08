@@ -1,0 +1,7 @@
+{
+  "input": "examples/sample-report.txt",
+  "expected_policy_flags": [],
+  "expected_reviewer_decision": "pass",
+  "escalated": false,
+  "note": "No PII, no monetary amount above threshold, confidence above floor: the run completes without the gate."
+}

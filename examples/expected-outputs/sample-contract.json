@@ -1,0 +1,12 @@
+{
+  "input": "examples/sample-contract.txt",
+  "expected_policy_flags": [
+    "pii:email",
+    "pii:iban",
+    "pii:phone",
+    "contract_value_exceeds_threshold"
+  ],
+  "expected_reviewer_decision": "escalate",
+  "escalated": true,
+  "note": "The email, IBAN, and phone number match the PII patterns and EUR 150,000 is at or above the 100,000 threshold, so the reviewer escalates and the run pauses at the human gate."
+}
