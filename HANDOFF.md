@@ -10,7 +10,7 @@
 
 ## 2026-07-09 — Session continuity introduced; repo published
 
-**State:** `main` released as **v0.1.0** (public) · gate **PASS** · dashboard runs live.
+**State:** HEAD `9cfeb60` · `main` released as **v0.1.0** (public) · gate **PASS** · secure **all saved** · CI **green** (lint-and-test + web) · dashboard runs live.
 
 **Done:**
 - Built the full pipeline (planner/worker/reviewer/gate/audit/contracts/llm/cli),
@@ -37,9 +37,12 @@ on machines without `llama3.1`; (2) whether to keep `Co-Authored-By: Claude` /
 `Claude-Session` commit trailers on the public repo; (3) social-preview image /
 GitHub Pages. None block core work.
 
-**Next:** whatever the maintainer prioritises — merge the dependabot PRs (CI is
-green on them), add a social-preview image, or continue feature work. Run
-`/session-start` to get the live picture first.
+**Next:** whatever the maintainer prioritises — merge the open dependabot PRs (CI
+green on them: pyyaml, actions/checkout 4→7, actions/setup-node 4→6), add a
+social-preview image, or continue feature work. **Maintainer input, to sharpen:**
+a pre-commit git hook that runs `scripts/gate.sh` so a red gate can't be
+committed (offered, not yet decided). Run `/session-start` for the live picture
+first.
 
 **Continuity warnings:** honour the BIBLE invariants — no step off the audit
 record, never edit a trail in place (recompute the chain), tests stay offline,
