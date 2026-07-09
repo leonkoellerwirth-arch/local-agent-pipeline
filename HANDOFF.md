@@ -8,6 +8,65 @@
 
 ---
 
+## 2026-07-09 — Backlog cleared: all Dependabot PRs + remaining decisions
+
+**State:** HEAD `9323afc` · pushed · gate **PASS** · **0 open PRs, 0 open
+issues**. The decision register is now **empty**. 102 offline tests green.
+
+**Commits this session (newest first):**
+- `9323afc` docs: resolve the remaining register items
+- `31272af` ci: add a keyless signed-release workflow
+- `8f3f664` chore(deps): migrate to Tailwind CSS 4
+- `eb613fd` chore(deps): bump web toolchain — Vite 8, TS 7, plugin-react 6, lucide 1
+- `11cff6b` ci(deps): bump GitHub Actions to current majors
+- `89199ed` chore(deps): bump Python dependency floors
+
+**Done:**
+- **All 13 Dependabot PRs applied and closed.** Applied **locally** (not merged)
+  because this session had rewritten `ci.yml` and added `uv.lock`, so the
+  Dependabot branches would conflict; each PR was closed with a comment pointing
+  at its superseding commit and its branch deleted. Groups: GitHub Actions
+  (#1-3), pip floors (#4-8, the versions the env already ran), web toolchain
+  (#9-11,13 — build verified), Tailwind 4 (#12).
+- **Tailwind CSS 3→4 migration** (the one real breaking bump): `@tailwindcss/postcss`
+  plugin, `@import "tailwindcss"` + an `@theme` mono token, deleted the JS config
+  (v4 auto-detects; `darkMode:class` was unused — no `dark:` variants), dropped
+  autoprefixer. **Verified visually** via a live screenshot — dashboard renders
+  identically, so the committed README shot stays valid (no re-shoot).
+- **Signed releases** — `release.yml`: on a `v*` tag, build sdist/wheel + a
+  keyless build-provenance attestation (GitHub OIDC). Test-built with `uv build`.
+- **Remaining register decisions resolved** (BIBLE §6, now empty): reviewer
+  default stays `llama3.1`; **no** GitHub Pages (dashboard needs its local API);
+  README stays a single document.
+
+**Finding (not a bug, worth knowing):** adding the additive `gate_reason` field
+makes **every trail created before it** fail `--verify` — the null field changes
+each event's canonical serialization, so `chain_hash` no longer matches. Exactly
+what §4 warns about. The committed example trails were regenerated (intact); the
+**local `runs/` fixtures are `.gitignore`d** so they're not in the repo — they now
+show BROKEN locally, which is only stale scratch data, not a §3 violation. New
+runs (with the field) verify fine.
+
+**Decided (BIBLE §6):** see the four resolved entries — reviewer model, no Pages,
+single README, keyless releases. Register is empty; nothing blocks new work.
+
+**Open / blocked:** **nothing blocking.** One non-blocking maintainer to-do
+persists: upload `docs/img/social-preview.png` under Settings → Social preview
+(cannot be done via git).
+
+**Next:** maintainer's choice — the review backlog (P1/P2/P3) is fully cleared.
+Natural future work if desired: a real `v0.2.0` tag to exercise `release.yml`, or
+new feature scope (needs a BIBLE justification per "deepen, don't widen").
+
+**Continuity warnings:** invariants hold — offline tests (102, no Ollama), no
+provider SDKs, trails never edited in place, keys never in URLs/config (HMAC key
+env-only), console localhost-only, `start.sh` never kills foreign processes. **Any
+audit-schema change stays additive (§4) and requires regenerating the committed
+example trails** — and be aware it invalidates verification of any pre-existing
+trail. README screenshots/outputs stay **real**.
+
+---
+
 ## 2026-07-09 — Backlog: audit-integrity hardening (P1) + all P2 items
 
 **State:** 7 commit(s) unpushed at snapshot · gate **PASS**. Two maintainer
