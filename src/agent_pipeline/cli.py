@@ -26,7 +26,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .audit import AuditLog, read_events, verify_chain
+from .audit import (
+    DEFAULT_HMAC_KEY_ENV,
+    AuditLog,
+    read_events,
+    signature_path,
+    verify_chain,
+    verify_signature,
+)
 from .contracts import (
     Actor,
     AuditEvent,
@@ -155,6 +162,7 @@ def _resolve(
         "gate_decision",
         step_id=step.step_id,
         decision=gate_outcome.decision.value,
+        gate_reason=gate_outcome.reason or None,
         policy_flags=flags,
     )
     if gate_outcome.decision is HumanDecision.REJECT:
@@ -311,6 +319,9 @@ def _render_audit_trail(console: Console, events: list[AuditEvent]) -> None:
             seen[e.step_id] = None
     step_ids = list(seen)
 
+    # The reason a human (or policy) gave at the gate, if the run hit one.
+    gate_reason = next((e.gate_reason for e in reversed(events) if e.gate_reason), None)
+
     # Summary panel
     flags_line = ", ".join(unique_flags) if unique_flags else "none"
     steps_line = ", ".join(step_ids) if step_ids else "none"
@@ -328,6 +339,8 @@ def _render_audit_trail(console: Console, events: list[AuditEvent]) -> None:
         f"[bold]Steps:[/bold] {steps_line}\n"
         f"[bold]Policy flags:[/bold] {flags_line}"
     )
+    if gate_reason:
+        summary_body += f"\n[bold]Gate reason:[/bold] {gate_reason}"
     console.print(Panel(summary_body, title="Audit summary", border_style="blue"))
 
     # Event table
@@ -387,8 +400,34 @@ def audit_cmd(trail: Path, verify: bool) -> None:
         else:
             console.print(f"[red]✗ Audit chain BROKEN[/red] — {result.reason}")
             raise SystemExit(1)
+        _verify_seal(console, trail, events)
         return
     _render_audit_trail(console, events)
+
+
+def _verify_seal(console: Console, trail: Path, events: list[AuditEvent]) -> None:
+    """Check the optional HMAC seal, if one exists and a key is available.
+
+    A trail without a ``.sig`` sidecar is simply unsigned (still tamper-evident).
+    A signature present but with no key in the environment is reported, not an
+    error. A present signature that fails verification exits non-zero.
+    """
+    sig_file = signature_path(trail)
+    if not sig_file.exists():
+        return
+    key = os.environ.get(DEFAULT_HMAC_KEY_ENV)
+    if not key:
+        console.print(
+            f"[yellow]• HMAC seal present but ${DEFAULT_HMAC_KEY_ENV} is not set[/yellow] "
+            "— signature not checked."
+        )
+        return
+    signature = sig_file.read_text(encoding="utf-8").strip()
+    if verify_signature(events, signature, key.encode("utf-8")):
+        console.print("[green]✓ HMAC seal valid[/green] — trail authenticated with the shared key.")
+    else:
+        console.print("[red]✗ HMAC seal INVALID[/red] — wrong key or the trail was tampered with.")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -44,3 +44,10 @@ audit:
   # without leaking document contents. See README "A note on privacy".
   dump_plaintext: false
   dump_dir: runs/dumps
+  # Optional tamper-RESISTANCE on top of the always-on tamper-evident chain.
+  # If the named environment variable holds a secret key, each closed trail is
+  # sealed with an HMAC-SHA256 over its chain head, written to <run_id>.jsonl.sig.
+  # Only the variable *name* lives here — never the key. Unset the variable and
+  # trails are simply unsigned (the chain is still tamper-evident). Verify with:
+  #   AUDIT_HMAC_KEY=… agent-pipeline audit <trail>.jsonl --verify
+  hmac_key_env: AUDIT_HMAC_KEY

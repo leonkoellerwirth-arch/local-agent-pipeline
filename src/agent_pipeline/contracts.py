@@ -126,6 +126,11 @@ class AuditEvent(BaseModel):
     prompt_hash: str | None = None
     output_hash: str | None = None
     decision: str | None = None
+    gate_reason: str | None = Field(
+        default=None,
+        description="Free-text reason a human (or policy) gave at the gate; recorded so an "
+        "escalation's resolution is legible in the trail. Covered by the hash chain.",
+    )
     confidence: float | None = None
     latency_ms: int | None = None
     policy_flags: list[str] = Field(default_factory=list)
