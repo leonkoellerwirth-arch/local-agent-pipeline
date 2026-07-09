@@ -66,6 +66,7 @@ def _allowed_origins() -> tuple[str, ...]:
 def _decision_timeout_s() -> int:
     return int(_cfg("decision_timeout_s", 900))
 
+
 # Project docs surfaced inside the app, so everything is visible in one place.
 DOCS = [
     ("readme", "Overview", ROOT / "README.md"),
