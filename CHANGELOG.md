@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Documentation & repo polish:** a real Audit Console screenshot in the README
+  (`docs/img/dashboard.png`), a `ROADMAP.md` (honest backlog + explicit
+  non-goals), and a social-preview image (`docs/img/social-preview.png`).
+- **Reproducible installs:** a committed `uv.lock` for the Python side, and
+  Dependabot now also watches the frontend lockfile (`web/package-lock.json`).
 - **Session continuity for AI agents:** `BIBLE.md` (binding invariants + decision
   register), `HANDOFF.md` (newest-first session memory), and `/session-start`,
   `/session-stop`, `/project-state` skills backed by deterministic scripts
