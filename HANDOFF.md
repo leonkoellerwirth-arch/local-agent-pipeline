@@ -8,6 +8,69 @@
 
 ---
 
+## 2026-07-09 — External review: all P0 (security) items fixed
+
+**State:** HEAD `41f56a8` · 6 commit(s) unpushed at snapshot · gate **PASS**.
+
+**Commits this session (newest first):**
+- `41f56a8` fix: scope the gate's TODO/name greps to source, not compiled bytecode
+- `5999825` style: ruff-format api_server.py (missed blank line)
+- `c21f4c3` docs: correct SECURITY.md to the real threat model
+- `59858f9` fix: don't let start.sh kill processes it didn't start
+- `bc3e81a` feat: guard the local web console with token, origin, and limits
+- `78f464a` fix: never put the Gemini API key in a request URL
+
+**Done:** Worked an external code review (maintainer-provided, German, P0–P3).
+Verified every **P0** claim against the code, then fixed all four:
+- **P0.2** Gemini key was a `?key=` URL param and `_post_json` echoed the full
+  URL on error → moved the key to the `x-goog-api-key` header; added `_safe_url()`
+  to strip query strings from error messages. 3 tests.
+- **P0.3** the localhost web console ran real pipeline runs with no access
+  control → added a shared session token (`X-API-Token`, forwarded by the Vite
+  proxy so the browser never holds it), an Origin allow-list (403), body-size
+  (413) and concurrency (429) caps, example-id validation (**fixed a real
+  path-traversal**, `example:../../…`), and decision-enum validation. Limits live
+  in `config/pipeline.yaml` (`web:`). New `tests/test_web_api.py` — 13 offline
+  cases. Added `web` to pytest `pythonpath`.
+- **P0.4** `start.sh` did `lsof … | kill` on both ports unconditionally → now a
+  taken port is a hard error; killing is opt-in via `--free-port`. It also
+  generates and exports `API_TOKEN` to both processes so the new guard works.
+- **P0.1** rewrote `SECURITY.md` from false claims ("no ports / no credentials /
+  no external calls") to the real three-surface threat model.
+- Incidental: fixed a **latent gate bug** — `grep … src` scanned `__pycache__`
+  `.pyc`, and a bytecode byte-run `XxX` tripped the `XXX` check in the gate's
+  shell; scoped the greps to source only. Tests: **86 pass**, gate **PASS**.
+
+**Decided (now in BIBLE §6):** keys in headers never URLs; the console is a
+local-safety layer not real auth (never expose publicly); `start.sh` never kills
+foreign processes; `SECURITY.md` tells the truth; the gate scans source not
+bytecode.
+
+**Open / blocked:** the three prior register items are unchanged (reviewer model
+without `llama3.1`; commit trailers on public repo; social-preview/Pages). New
+open item: **audit-integrity hardening (review P1)** — full-length SHA-256 vs the
+16-hex fingerprint, optional HMAC/signature, and the human gate-reason in the
+trail; these touch the audit schema (§4) + integrity claim (§3), so decide the
+shape with the maintainer first.
+
+**Next:** maintainer's pick from the review backlog, roughly in the reviewer's
+recommended order:
+- **P1:** gate-reason into the audit; full hashes (or document as fingerprint);
+  optional HMAC; `uv.lock`/constraints for Python repro; add `web/package-lock.json`
+  to Dependabot.
+- **P2:** config schema-validation in the CLI; document the reviewer PII regex as
+  a demo guardrail; CI matrix (3.11/3.12/3.13); add `pip-audit`.
+- **P3:** README split (Product / Security / Maintainer workflow); ROADMAP/RELEASE;
+  signed releases/provenance; the still-open dependabot PRs.
+
+**Continuity warnings:** honour the BIBLE invariants — reference pattern (no
+overclaim), tests stay **offline** (the new web tests reject before any run, so no
+Ollama), no provider SDKs, never edit a trail in place, keys never in URLs, the
+web console stays localhost-only, `start.sh` never kills foreign processes. Any
+docs demo/output stays **real**.
+
+---
+
 ## 2026-07-09 — README: session-workflow skills documented
 
 **State:** HEAD `825ccc8` · 0 commit(s) unpushed · gate **PASS** · secure **all saved**.

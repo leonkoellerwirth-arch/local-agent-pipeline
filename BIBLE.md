@@ -90,6 +90,12 @@ Open items — `- [ ]` blocks the related task until decided with the maintainer
   request).
 - [ ] **Repo polish:** social-preview image and (optionally) GitHub Pages for the
   dashboard — not yet done.
+- [ ] **Audit-integrity hardening (external review, P1).** The reviewer asked to
+  make the audit story *tamper-resistant*, not just tamper-evident: full-length
+  SHA-256 instead of the 16-hex fingerprint (or document it as a privacy
+  fingerprint only), an optional HMAC/signature, and the human gate-reason
+  recorded in the trail. These touch the audit schema (§4) and the integrity
+  claim (§3), so decide the shape with the maintainer before coding.
 
 Resolved decisions of record (why things are the way they are):
 
@@ -97,3 +103,15 @@ Resolved decisions of record (why things are the way they are):
 - Dashboard uses a **stdlib** Python API + Vite proxy (ytscapper's architecture)
   — **no Docker, no framework, no provider SDKs** — to fit "small & local".
 - CI covers Python **and** the web build.
+- **Cloud-provider keys go in request headers, never in a URL** (Gemini used a
+  `?key=` query param); error messages strip query strings as defence in depth.
+- **The local web console is guarded, not open:** localhost bind + shared
+  session token (`X-API-Token`, injected by the Vite proxy) + Origin allow-list +
+  body-size (413) and concurrency (429) caps + example-id validation. It is a
+  local-machine safety layer, **not** real auth — never expose it publicly.
+- **`start.sh` never kills a process it didn't start** — a taken port is a
+  hard error; killing is opt-in via `--free-port`.
+- **`SECURITY.md` states the real threat model** (local-by-default; external
+  providers are opt-in and send data off-host; the console opens a local port).
+- The gate scans **source only** for TODO/name markers — never compiled `.pyc`
+  (a bytecode byte-sequence once tripped the `XXX` check).
