@@ -8,6 +8,41 @@
 
 ---
 
+## 2026-07-09 — README: session-workflow skills documented
+
+**State:** HEAD `825ccc8` · 0 commit(s) unpushed · gate **PASS** · secure **all saved**.
+
+**Commits this session:**
+- `825ccc8` docs: document the session-workflow skills with a real transcript demo
+
+**Done:**
+- Replaced the thin "Working across sessions" note in `README.md` with a full
+  **"How we work with this repo (session workflow)"** section: the three state
+  artefacts (`BIBLE.md` / `HANDOFF.md` / `scripts/`), the three skills
+  (`/session-start`, `/project-state`, `/session-stop`), and the binding rule
+  not to start work on a red gate or open decision.
+- Added a **Demo** subsection with the **real, unedited** output of
+  `state.sh`/`gate.sh`/`secure.sh` on a clean tree (the one commit-list elision
+  is called out inline) — concrete, not abstract, and honest per the BIBLE.
+
+**Decided:** nothing new — no BIBLE invariant or register item changed this
+session (documentation only).
+
+**Open / blocked:** unchanged from the entry below — the three open `BIBLE.md`
+register items (reviewer model without `llama3.1`; commit-trailer policy on the
+public repo; social-preview image / Pages). None block core work.
+
+**Next:** maintainer's pick — merge the open dependabot PRs (pyyaml,
+actions/checkout 4→7, actions/setup-node 4→6), the pre-commit gate hook (offered,
+not yet decided), or resolve a register item. Run `/session-start` first.
+
+**Continuity warnings:** honour the BIBLE invariants — no overclaim (reference
+pattern), tests stay offline, no provider SDKs, never edit a trail in place, no
+customer-internal names. Any demo/output added to docs stays **real** (run it,
+don't mock it).
+
+---
+
 ## 2026-07-09 — Session continuity introduced; repo published
 
 **State:** HEAD `9cfeb60` · `main` released as **v0.1.0** (public) · gate **PASS** · secure **all saved** · CI **green** (lint-and-test + web) · dashboard runs live.
