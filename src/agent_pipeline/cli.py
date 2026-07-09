@@ -34,6 +34,7 @@ from .audit import (
     verify_chain,
     verify_signature,
 )
+from .config import ConfigError, validate_pipeline_config, validate_policy_config
 from .contracts import (
     Actor,
     AuditEvent,
@@ -223,6 +224,11 @@ def run(input_path: str, config_path: str, policy_path: str, non_interactive: bo
     _load_dotenv(Path(".env"))  # make any external-provider keys available
     pipeline_cfg = _load_yaml(config_path)
     policy_cfg = _load_yaml(policy_path)
+    try:
+        validate_pipeline_config(pipeline_cfg, config_path)
+        validate_policy_config(policy_cfg, policy_path)
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
 
     run_id = _new_run_id()
     task = Task(
