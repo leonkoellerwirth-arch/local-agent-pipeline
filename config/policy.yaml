@@ -15,6 +15,12 @@ min_confidence: 0.6
 risk_triggers:
   # Regex heuristics for personally identifiable information. These are a first
   # pass, deliberately conservative; the reviewer LLM adds a second judgement.
+  #
+  # DEMO GUARDRAIL, NOT A COMPLIANCE-GRADE PII DETECTOR. These patterns exist to
+  # demonstrate deterministic risk triggers feeding the human gate — they will
+  # both miss real PII (names, addresses, non-EU formats) and fire on false
+  # positives. Do not treat a clean pass here as a privacy guarantee; for real
+  # detection use a dedicated, tested library.
   pii_patterns:
     email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
     iban: '\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b'

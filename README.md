@@ -110,6 +110,11 @@ guardrails (action space, PII patterns, thresholds, escalation rules) live in
 `config/policy.yaml`. There are **no magic numbers in the code** — change
 behaviour by editing YAML.
 
+> The bundled PII regexes are a **demo guardrail**, not a compliance-grade
+> detector: they illustrate deterministic risk triggers feeding the human gate,
+> and will both miss real PII and raise false positives. A clean pass is not a
+> privacy guarantee — use a dedicated, tested library for real detection.
+
 ## External review (optional)
 
 Every role runs on a local Ollama model by default. To route a role — typically
