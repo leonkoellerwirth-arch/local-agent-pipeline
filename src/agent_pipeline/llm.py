@@ -26,6 +26,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
+from urllib.parse import urlsplit, urlunsplit
 
 KNOWN_PROVIDERS = ("ollama", "openai", "gemini", "claude")
 
@@ -99,6 +100,19 @@ def resolve_api_key(provider: str) -> str:
     )
 
 
+def _safe_url(url: str) -> str:
+    """Return ``url`` without its query string.
+
+    Some providers (Gemini's REST endpoint) accept the API key as a query
+    parameter. Dropping the query before a URL ever reaches an error message,
+    log line, or traceback keeps that secret from leaking. Keys should still be
+    sent as headers where possible; this is defence in depth, not the primary
+    guard.
+    """
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+
 def _post_json(url: str, headers: dict[str, str], payload: dict, timeout: int) -> dict:
     """POST ``payload`` as JSON and return the decoded JSON response."""
     data = json.dumps(payload).encode("utf-8")
@@ -110,9 +124,9 @@ def _post_json(url: str, headers: dict[str, str], payload: dict, timeout: int) -
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", "replace")
-        raise LLMError(f"HTTP {exc.code} from {url}: {body}") from exc
+        raise LLMError(f"HTTP {exc.code} from {_safe_url(url)}: {body}") from exc
     except (urllib.error.URLError, TimeoutError) as exc:
-        raise LLMError(f"Could not reach {url}: {exc}") from exc
+        raise LLMError(f"Could not reach {_safe_url(url)}: {exc}") from exc
 
 
 def _call_ollama(host: str, timeout: int, temp: float, model: str, prompt: str, jm: bool) -> str:
@@ -149,11 +163,11 @@ def _call_gemini(timeout: int, temp: float, model: str, prompt: str, jm: bool) -
     if jm:
         generation["responseMimeType"] = "application/json"
     payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": generation}
-    key = resolve_api_key("gemini")
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-    )
-    data = _post_json(url, {}, payload, timeout)
+    # Send the key as a header, never in the URL, so it cannot leak into an
+    # error message, log line, or traceback via the request URL.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {"x-goog-api-key": resolve_api_key("gemini")}
+    data = _post_json(url, headers, payload, timeout)
     try:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError) as exc:

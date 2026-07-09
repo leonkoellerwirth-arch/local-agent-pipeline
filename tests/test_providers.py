@@ -12,7 +12,14 @@ import pytest
 
 from agent_pipeline import llm as llm_mod
 from agent_pipeline.cli import _load_dotenv
-from agent_pipeline.llm import LLMClient, LLMError, parse_model_ref, resolve_api_key
+from agent_pipeline.llm import (
+    LLMClient,
+    LLMError,
+    _post_json,
+    _safe_url,
+    parse_model_ref,
+    resolve_api_key,
+)
 
 
 # --- model refs -----------------------------------------------------------
@@ -85,6 +92,17 @@ def test_gemini_dispatch(monkeypatch, capture_post):
     assert capture_post["payload"]["generationConfig"]["responseMimeType"] == "application/json"
 
 
+def test_gemini_key_goes_in_header_not_url(monkeypatch, capture_post):
+    # Regression: the key must never appear in the request URL (it used to be a
+    # ?key= query param, which leaks through error messages).
+    monkeypatch.setenv("GEMINI_API_KEY", "super-secret")
+    capture_post["response"] = {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}
+    LLMClient({}).generate("gemini:gemini-1.5-pro", "hi")
+    assert "super-secret" not in capture_post["url"]
+    assert "key=" not in capture_post["url"]
+    assert capture_post["headers"]["x-goog-api-key"] == "super-secret"
+
+
 def test_claude_dispatch(monkeypatch, capture_post):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
     capture_post["response"] = {"content": [{"text": "reviewed"}]}
@@ -114,6 +132,27 @@ def test_injected_backend_bypasses_providers():
     # No key set, no network: an injected backend serves every provider ref.
     client = LLMClient({}, backend=lambda model, prompt, jm: "canned")
     assert client.generate("openai:gpt-4o", "hi").text == "canned"
+
+
+# --- error redaction ------------------------------------------------------
+def test_safe_url_strips_query_string():
+    url = "https://example.com/v1/models/x:generateContent?key=SECRET&alt=json"
+    assert _safe_url(url) == "https://example.com/v1/models/x:generateContent"
+
+
+def test_post_json_error_message_redacts_query_secrets(monkeypatch):
+    # If a key ever rides in the URL, transport errors must not echo it back.
+    import urllib.error
+
+    def boom(*_a, **_k):
+        raise urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(llm_mod.urllib.request, "urlopen", boom)
+    url = "https://example.com/v1beta/models/x:generateContent?key=leaked-secret"
+    with pytest.raises(LLMError) as exc:
+        _post_json(url, {}, {"a": 1}, timeout=1)
+    assert "leaked-secret" not in str(exc.value)
+    assert "key=" not in str(exc.value)
 
 
 # --- .env loading ---------------------------------------------------------
