@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Session continuity for AI agents:** `BIBLE.md` (binding invariants + decision
+  register), `HANDOFF.md` (newest-first session memory), and `/session-start`,
+  `/session-stop`, `/project-state` skills backed by deterministic scripts
+  (`scripts/state.sh`, `gate.sh`, `secure.sh`, `session-snapshot.sh`). A project
+  `CLAUDE.md` wires it together; the dashboard's Docs tab surfaces BIBLE/HANDOFF.
+
 ## [0.1.0] - 2026-07-08
 
 ### Added

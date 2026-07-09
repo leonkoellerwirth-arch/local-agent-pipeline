@@ -41,6 +41,8 @@ DECISION_TIMEOUT_S = 900  # if nobody answers the review, fail safe (reject)
 # Project docs surfaced inside the app, so everything is visible in one place.
 DOCS = [
     ("readme", "Overview", ROOT / "README.md"),
+    ("bible", "Project Bible", ROOT / "BIBLE.md"),
+    ("handoff", "Handoff (session log)", ROOT / "HANDOFF.md"),
     ("sop", "Maintainer SOP", ROOT / "docs" / "SOP.md"),
     ("contributing", "Contributing", ROOT / "CONTRIBUTING.md"),
     ("changelog", "Changelog", ROOT / "CHANGELOG.md"),

@@ -279,6 +279,16 @@ commit conventions, and PR expectations. Maintainers: [docs/SOP.md](docs/SOP.md)
 covers adding policy rules, extending the action space, and keeping the audit
 schema compatible with the sibling toolkit.
 
+## Working across sessions (for AI agents)
+
+So work with an AI agent survives a fresh session, the repo keeps its own memory:
+[`BIBLE.md`](BIBLE.md) holds the binding invariants and open decisions,
+[`HANDOFF.md`](HANDOFF.md) is a newest-first session log, and
+[`CLAUDE.md`](CLAUDE.md) wires it together. Start a session with `/session-start`
+(reconstructs state from the deterministic `scripts/` + the repo memory) and end
+it with `/session-stop` (gate → snapshot → commit → push). Both are visible in
+the dashboard's **Docs** tab too.
+
 ## Related
 
 This repo *implements* patterns; its sibling
