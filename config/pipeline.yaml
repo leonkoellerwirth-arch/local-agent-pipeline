@@ -23,6 +23,19 @@ llm:
   temperature: 0.0               # deterministic-ish; this is extraction, not prose
   max_retries: 1                 # one retry with error feedback, then abort
 
+# Guards for the optional local web console (web/api_server.py). It binds to
+# localhost only and drives real pipeline runs, so these keep a stray local
+# process or a malicious web page from abusing it. The shared session token is
+# generated at startup (or taken from $API_TOKEN) — behaviour, not a secret, is
+# what lives here.
+web:
+  max_body_bytes: 262144          # 256 KiB — larger POST bodies get 413
+  max_concurrent_runs: 4          # more in-flight runs than this get 429
+  decision_timeout_s: 900         # unanswered human review fails safe (reject)
+  allowed_origins:                # browser Origin must be one of these (else 403)
+    - http://127.0.0.1:5173
+    - http://localhost:5173
+
 audit:
   # Directory for the JSONL trail. One file per run: <log_dir>/<run_id>.jsonl
   log_dir: runs

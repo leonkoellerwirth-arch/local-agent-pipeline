@@ -12,13 +12,20 @@ non-technical user drive the whole pipeline from the browser:
 Human oversight happens *in the browser*: when the reviewer escalates, the run
 pauses (``WebGate`` blocks its worker thread) and the UI shows the finding with
 Approve / Reject / Edit buttons — the same gate the CLI has, moved to the web.
-Bind to localhost only; this endpoint runs the pipeline on request.
+
+It binds to localhost only and starts real runs, so it is guarded accordingly:
+a shared session token (``X-API-Token``; generated at startup or pinned via
+``$API_TOKEN`` so the Vite proxy can share it), a localhost ``Origin`` allow-list,
+a max request-body size (413), and a concurrent-run cap (429). The limits live in
+``config/pipeline.yaml`` (``web:``). These make it safe on a shared machine; they
+are not a substitute for real auth on a public host — don't expose it to one.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import secrets
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -36,7 +43,28 @@ from agent_pipeline.llm import LLMClient, LLMError
 ROOT = Path(__file__).resolve().parents[1]
 RUN_DIRS = [Path(os.environ.get("RUNS_DIR", ROOT / "runs")), ROOT / "examples" / "expected-outputs"]
 EXAMPLES_DIR = ROOT / "examples"
-DECISION_TIMEOUT_S = 900  # if nobody answers the review, fail safe (reject)
+
+# --- local-access guards --------------------------------------------------
+# The console binds to localhost and drives real runs, so we defend against the
+# two local threats: another process on the box, and a malicious web page the
+# user has open (which can POST to 127.0.0.1). A shared token blocks the first;
+# an Origin allow-list blocks the second. Values come from config/pipeline.yaml
+# (`web:`); the token is generated per process unless $API_TOKEN pins it so the
+# Vite proxy can share it (see web/start.sh, web/vite.config.ts).
+API_TOKEN = os.environ.get("API_TOKEN") or secrets.token_urlsafe(24)
+WEB_CFG: dict = {}
+
+
+def _cfg(key: str, default: object) -> object:
+    return WEB_CFG.get(key, default)
+
+
+def _allowed_origins() -> tuple[str, ...]:
+    return tuple(_cfg("allowed_origins", ("http://127.0.0.1:5173", "http://localhost:5173")))
+
+
+def _decision_timeout_s() -> int:
+    return int(_cfg("decision_timeout_s", 900))
 
 # Project docs surfaced inside the app, so everything is visible in one place.
 DOCS = [
@@ -84,7 +112,7 @@ class WebGate(BaseGate):
             "raw": result.raw,
         }
         self._s.status = "awaiting_review"
-        answered = self._s._event.wait(timeout=DECISION_TIMEOUT_S)
+        answered = self._s._event.wait(timeout=_decision_timeout_s())
         self._s._event.clear()
         self._s.review = None
         self._s.status = "running"
@@ -135,13 +163,27 @@ def _run_worker(session: RunSession, task: Task, pipeline_cfg: dict, policy_cfg:
         session.status, session.error = "error", f"{type(exc).__name__}: {exc}"
 
 
+def _example_names() -> set[str]:
+    """The ids of the bundled example documents (their file stems)."""
+    return {path.stem for path in EXAMPLES_DIR.glob("*.txt")}
+
+
+class BadRequest(ValueError):
+    """A client-side error (bad example id, etc.) that maps to HTTP 400."""
+
+
 def _start_run(source: str, text: str) -> str:
     pipeline_cfg = _load_yaml(str(ROOT / "config" / "pipeline.yaml"))
     policy_cfg = _load_yaml(str(ROOT / "config" / "policy.yaml"))
     _load_dotenv(ROOT / ".env")
 
     if source.startswith("example:"):
-        content = (EXAMPLES_DIR / f"{source.split(':', 1)[1]}.txt").read_text(encoding="utf-8")
+        # Only known example ids are accepted — never build a path from the raw
+        # value, or `example:../../etc/passwd` would read arbitrary files.
+        example_id = source.split(":", 1)[1]
+        if example_id not in _example_names():
+            raise BadRequest(f"unknown example '{example_id}'")
+        content = (EXAMPLES_DIR / f"{example_id}.txt").read_text(encoding="utf-8")
         input_path = source
     else:
         content = text
@@ -178,7 +220,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _read_json(self) -> dict:
-        length = int(self.headers.get("Content-Length", "0"))
+        length = int(self.headers.get("Content-Length", "0") or "0")
         if not length:
             return {}
         try:
@@ -186,7 +228,25 @@ class Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return {}
 
+    def _guarded(self) -> bool:
+        """Enforce the local-access guards; on failure send the error and return False.
+
+        ``/health`` is exempt so a launcher can probe liveness without the token.
+        """
+        if self.path == "/health":
+            return True
+        origin = self.headers.get("Origin")
+        if origin is not None and origin not in _allowed_origins():
+            self._send(403, {"error": "cross-origin request refused"})
+            return False
+        if not secrets.compare_digest(self.headers.get("X-API-Token", ""), API_TOKEN):
+            self._send(401, {"error": "missing or invalid API token"})
+            return False
+        return True
+
     def do_GET(self) -> None:  # noqa: N802 - required handler name
+        if not self._guarded():
+            return
         if self.path == "/health":
             self._send(200, {"status": "ok"})
         elif self.path.startswith("/api/runs"):
@@ -205,30 +265,50 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802 - required handler name
+        if not self._guarded():
+            return
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length > int(_cfg("max_body_bytes", 262144)):
+            self._send(413, {"error": "request body too large"})
+            return
         if self.path == "/api/run":
-            body = self._read_json()
-            source = str(body.get("source", ""))
-            text = str(body.get("text", ""))
-            if not source and not text.strip():
-                self._send(400, {"error": "provide a source or some text"})
-                return
-            try:
-                run_id = _start_run(source, text)
-            except OSError as exc:
-                self._send(400, {"error": str(exc)})
-                return
-            self._send(202, {"run_id": run_id})
+            self._handle_run()
         elif self.path.startswith("/api/run/") and self.path.endswith("/decide"):
-            run_id = self.path[len("/api/run/") : -len("/decide")]
-            session = SESSIONS.get(run_id)
-            if not session:
-                self._send(404, {"error": "unknown run"})
-                return
-            session._decision = self._read_json()
-            session._event.set()
-            self._send(200, {"ok": True})
+            self._handle_decide()
         else:
             self._send(404, {"error": "not found"})
+
+    def _handle_run(self) -> None:
+        active = sum(1 for s in SESSIONS.values() if s.status in ("running", "awaiting_review"))
+        if active >= int(_cfg("max_concurrent_runs", 4)):
+            self._send(429, {"error": "too many concurrent runs; try again shortly"})
+            return
+        body = self._read_json()
+        source = str(body.get("source", ""))
+        text = str(body.get("text", ""))
+        if not source and not text.strip():
+            self._send(400, {"error": "provide a source or some text"})
+            return
+        try:
+            run_id = _start_run(source, text)
+        except (BadRequest, OSError) as exc:
+            self._send(400, {"error": str(exc)})
+            return
+        self._send(202, {"run_id": run_id})
+
+    def _handle_decide(self) -> None:
+        run_id = self.path[len("/api/run/") : -len("/decide")]
+        session = SESSIONS.get(run_id)
+        if not session:
+            self._send(404, {"error": "unknown run"})
+            return
+        decision = self._read_json()
+        if decision.get("decision") not in tuple(d.value for d in HumanDecision):
+            self._send(400, {"error": "decision must be approve, reject, or edit"})
+            return
+        session._decision = decision
+        session._event.set()
+        self._send(200, {"ok": True})
 
     def _examples(self) -> list[dict]:
         items = []
@@ -251,9 +331,12 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    global WEB_CFG
+    WEB_CFG = _load_yaml(str(ROOT / "config" / "pipeline.yaml")).get("web", {})
     port = int(os.environ.get("API_PORT", "18082"))
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"audit API on http://127.0.0.1:{port}  (runs, examples, run, decide)")
+    print(f"session token (X-API-Token): {API_TOKEN}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
