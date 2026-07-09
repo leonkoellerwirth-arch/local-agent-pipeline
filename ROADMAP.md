@@ -25,21 +25,18 @@ Binding invariants and the open decision register live in
   `pip-audit` job for known-vulnerable dependencies.
 - **Reviewer PII regex documented** ✅ — called out as a demo guardrail (in
   `policy.yaml` and the README), not a compliance-grade detector.
+- **Dependencies current** ✅ — all 13 Dependabot PRs applied and verified,
+  including the major web bumps (Tailwind 4, TypeScript 7, Vite 8, plugin-react
+  6, lucide 1) and the GitHub Actions/pip bumps.
+- **Signed releases** ✅ — `release.yml` builds on a `v*` tag and attaches a
+  keyless build-provenance attestation (GitHub OIDC).
 
-## Next
+## Decided against (see BIBLE §6)
 
-- **Dependency PRs** — triage the open Dependabot PRs; the major web bumps
-  (Tailwind 4, TypeScript 7, Vite 8) need testing against the dashboard build
-  before merge.
-
-## Later
-
-- **Docs split** — separate Product / Security / Maintainer-workflow docs as the
-  README grows.
-- **Signed releases / provenance** for tagged versions.
-- **GitHub Pages** for the dashboard (optional). _(A social-preview image already
-  ships at [`docs/img/social-preview.png`](docs/img/social-preview.png); the
-  maintainer uploads it under Settings → Social preview.)_
+- **GitHub Pages** — the dashboard needs its local API; a static deploy would be
+  an empty shell. Not shipped.
+- **Docs split** — the single, read-in-one-sitting README is the positioning;
+  specialised material already lives in `SECURITY.md` / `ROADMAP.md` / `SOP.md`.
 
 ## Explicit non-goals
 

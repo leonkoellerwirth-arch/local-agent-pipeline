@@ -80,15 +80,27 @@ regenerate the committed example trails (`scripts/render_examples.py`) when you 
 
 Open items — `- [ ]` blocks the related task until decided with the maintainer.
 
-- [ ] **Default reviewer model on machines without `llama3.1`.** Committed default
-  is `reviewer: llama3.1`; it is not installed on the author's machine. Either
-  `ollama pull llama3.1`, or set an installed model locally (e.g.
-  `aya-expanse:8b`) — a legitimate, uncommitted local config edit.
-- [ ] **Repo polish:** GitHub Pages for the dashboard (optional) — not yet done.
-  The social-preview image now ships at `docs/img/social-preview.png`; only the
-  maintainer's manual upload under Settings → Social preview remains.
+- *(none open.)* One non-blocking maintainer to-do remains: upload
+  `docs/img/social-preview.png` under Settings → Social preview (cannot be done
+  via git).
 
 Resolved decisions of record (why things are the way they are):
+
+- **Reviewer default stays `llama3.1`.** It is a widely available Ollama model
+  and — since the worker is `llama3.2` — satisfies the independent-reviewer
+  invariant. A dev machine without it uses `ollama pull llama3.1` or an
+  uncommitted local override; not a repo concern.
+- **No GitHub Pages for the dashboard.** The console talks to the local Python
+  API, so a static Pages deploy would show an empty, backend-less UI. Not worth
+  a demo-data mode (scope creep) — deliberately not shipped.
+- **The README stays a single document, not split.** "Read it in one sitting"
+  is the positioning; a Product/Security/Maintainer split would work against it.
+  `SECURITY.md`, `ROADMAP.md`, and `docs/SOP.md` already carry the specialised
+  material.
+- **Releases are signed keyless.** `.github/workflows/release.yml` builds the
+  sdist/wheel on a `v*` tag and attaches a build-provenance attestation via
+  GitHub OIDC (`actions/attest-build-provenance`) — no signing keys to manage;
+  verify with `gh attestation verify`.
 
 - Tamper-evident hash chain is the headline differentiator (vs. "we log stuff").
 - Dashboard uses a **stdlib** Python API + Vite proxy (ytscapper's architecture)

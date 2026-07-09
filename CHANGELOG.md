@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of a `KeyError` mid-run.
 - **CI hardening:** the test job runs a Python 3.11 / 3.12 / 3.13 matrix, and a
   new `pip-audit` job fails the build on a known-vulnerable dependency.
+- **Signed releases:** `release.yml` builds the sdist/wheel on a `v*` tag and
+  attaches a keyless build-provenance attestation via GitHub OIDC
+  (`actions/attest-build-provenance`) — verify with `gh attestation verify`.
+
+### Dependencies
+
+- Applied all outstanding Dependabot updates: GitHub Actions (checkout 7,
+  setup-python 6, setup-node 6), Python floors (pydantic 2.13, pyyaml 6.0.3,
+  click 8.4, pytest 9.1, ruff 0.15), and the web toolchain (Vite 8, TypeScript 7,
+  @vitejs/plugin-react 6, lucide-react 1, and a Tailwind CSS 3→4 migration).
 
 ### Changed
 
