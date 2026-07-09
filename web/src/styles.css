@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Preserve the mono stack the UI uses via `font-mono` (Tailwind 4 reads theme
+   tokens from CSS). Content sources are auto-detected, so no JS config. */
+@theme {
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 
 :root {
   color-scheme: dark;
