@@ -18,11 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   key-holder detect even a fully re-chained forgery. `agent-pipeline audit
   --verify` reports the seal status. Example trails regenerated.
 
+- **Config validation:** `pipeline.yaml` and `policy.yaml` are validated at load
+  (`config.py`) — a missing `models`/`action_space`/`llm`/`audit` key or an
+  out-of-range value now fails fast with a clear message naming the file, instead
+  of a `KeyError` mid-run.
+- **CI hardening:** the test job runs a Python 3.11 / 3.12 / 3.13 matrix, and a
+  new `pip-audit` job fails the build on a known-vulnerable dependency.
+
 ### Changed
 
 - `AuditEvent` gains the optional `gate_reason` field, and `content_hash` returns
   a full-length digest. Both are backward-compatible for the sibling
   `log_analyzer` (additive field; the HMAC seal is a sidecar, not in the JSONL).
+- The bundled PII regexes are documented as a **demo guardrail**, not a
+  compliance-grade detector (`policy.yaml`, README).
 
 ### Added (docs & tooling)
 

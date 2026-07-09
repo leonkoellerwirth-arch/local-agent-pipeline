@@ -18,14 +18,19 @@ Binding invariants and the open decision register live in
   regenerated.
 - **Reproducible installs** ✅ — `uv.lock` and `web/package-lock.json` committed,
   both watched by Dependabot.
+- **Config schema-validation** ✅ — `pipeline.yaml` / `policy.yaml` are validated
+  at load (Pydantic, in `config.py`); a malformed config fails fast with a clear
+  message instead of a mid-run `KeyError`.
+- **CI hardening** ✅ — test matrix across Python 3.11 / 3.12 / 3.13 and a
+  `pip-audit` job for known-vulnerable dependencies.
+- **Reviewer PII regex documented** ✅ — called out as a demo guardrail (in
+  `policy.yaml` and the README), not a compliance-grade detector.
 
 ## Next
 
-- **Config schema-validation in the CLI** — fail fast on a malformed
-  `policy.yaml` / `pipeline.yaml` at the boundary, with a clear message.
-- **CI matrix** across Python 3.11 / 3.12 / 3.13, plus `pip-audit` in the gate.
-- **Document the reviewer PII regex** explicitly as a demo guardrail, not a
-  compliance-grade detector.
+- **Dependency PRs** — triage the open Dependabot PRs; the major web bumps
+  (Tailwind 4, TypeScript 7, Vite 8) need testing against the dashboard build
+  before merge.
 
 ## Later
 
