@@ -8,6 +8,73 @@
 
 ---
 
+## 2026-07-09 — Backlog: audit-integrity hardening (P1) + all P2 items
+
+**State:** 7 commit(s) unpushed at snapshot · gate **PASS**. Two maintainer
+decisions taken this session (see Decided). Full suite **107 offline tests**.
+
+**Commits this session (newest first):**
+- `b09b069` docs: record the P2 backlog items as done
+- `612ab71` docs: mark the bundled PII regexes as a demo guardrail
+- `6dfed9c` feat: validate pipeline/policy YAML at load with a clear error
+- `d44c9b7` ci: test on a Python 3.11-3.13 matrix and add a pip-audit job
+- `c19755f` docs: document audit-integrity hardening; close the register items
+- `0b6f9be` docs(examples): regenerate example trails for the hardened audit schema
+- `7590290` feat: harden audit integrity — full hashes, gate reason, optional HMAC seal
+
+**Done:**
+- **P1 audit-integrity hardening (maintainer chose "voll ausbauen").** Key insight
+  that de-risked it: the *chain* hash (`entry_hash`/`prev_hash`) was **already
+  full SHA-256** — only the content fingerprints were truncated. Shipped: (a)
+  `content_hash` → full SHA-256; (b) additive `gate_reason` field on `AuditEvent`,
+  populated at the gate, covered by the chain, shown in the audit summary; (c)
+  optional **HMAC-SHA256 seal** over the chain head, opt-in via `AUDIT_HMAC_KEY`,
+  written to sidecar `<run_id>.jsonl.sig`; `audit --verify` reports it. Verified
+  end-to-end via the real CLI (valid seal with key; clean note without key;
+  re-chained forgery caught). 12 new tests. §4 kept **additive** (optional field +
+  sidecar) so the sibling `log_analyzer` is unaffected. Example trails regenerated.
+- **P2 config schema-validation** — new `config.py` (light Pydantic, `extra=allow`)
+  validates the keys the orchestrator reads without a default; the `run` command
+  fails fast with a clean click error naming the file, no mid-run KeyError. 9 tests.
+- **P2 CI hardening** — 3.11/3.12/3.13 test matrix + a `pip-audit` job.
+- **P2 PII regex** — documented as a demo guardrail (policy.yaml + README), not a
+  compliance detector.
+
+**Decided (now in BIBLE §6):** audit integrity is layered (always-on full-SHA-256
+evidence + opt-in HMAC resistance; `gate_reason` recorded); **commit trailers are
+kept** (consistent history, honest authorship — no rewrite). Both prior open
+register items closed.
+
+**Open / blocked (need the maintainer — I did not force these):**
+- **13 open Dependabot PRs.** Safe: github-actions bumps + pip lower-bound bumps.
+  **Risky:** major web bumps — Tailwind 3→4, TypeScript 5→7, Vite 6→8,
+  lucide-react 0→1, plugin-react 4→6 — will likely break `web build`; each needs
+  testing before merge. Merging PRs is an outward action → **awaiting your
+  go-ahead**; I can take the safe ones and babysit the majors.
+- **Signed releases / provenance** — needs a signing identity or a keyless
+  (Sigstore/cosign-in-CI) decision. Your call on the mechanism.
+- **GitHub Pages** — **low value as-is**: the dashboard talks to the local Python
+  API, so a static Pages deploy would show an empty, backend-less UI. Would need a
+  static demo-data mode first — recommend deferring, not shipping a broken site.
+- **Docs split (P3)** — optional reorg; the README is already strong. Deferred
+  unless you want it.
+- **Reviewer default model without `llama3.1`** — local-only config, not
+  repo-facing; unchanged.
+- **Social-preview upload** (from the prior session) — still needs your manual
+  upload of `docs/img/social-preview.png` under Settings → Social preview.
+
+**Next:** your call on the Dependabot PRs (safe batch now? babysit the majors?)
+and the signing mechanism. Everything decision-free in the review backlog is done.
+
+**Continuity warnings:** invariants hold — tests stay **offline** (107 pass, no
+Ollama), no provider SDKs, trails never edited in place, keys never in URLs/config
+(HMAC key is env-only), console localhost-only, `start.sh` never kills foreign
+processes. **Any audit-schema change stays additive** (§4) and requires
+regenerating example trails via `scripts/render_examples.py`. README
+screenshots/outputs stay **real**.
+
+---
+
 ## 2026-07-09 — Repo polish: "looks professional at a glance"
 
 **State:** HEAD `1ca7f85` · 5 commit(s) unpushed at snapshot · gate **PASS**.
