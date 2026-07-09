@@ -8,6 +8,64 @@
 
 ---
 
+## 2026-07-09 — Repo polish: "looks professional at a glance"
+
+**State:** HEAD `1ca7f85` · 5 commit(s) unpushed at snapshot · gate **PASS**.
+
+**Commits this session (newest first):**
+- `1ca7f85` docs: add ROADMAP.md + record the polish in the changelog
+- `a424c5f` docs: ship a social-preview image
+- `92e457f` docs: add a real Audit Console screenshot to the README
+- `7e7ae68` ci(deps): have Dependabot watch the web npm lockfile
+- `aeb4d96` chore(deps): add uv.lock for reproducible Python installs
+
+**Done:** Maintainer asked to make the repo look professional immediately. The repo
+was already well-equipped (badges, LICENSE, CONTRIBUTING/COC/SECURITY, CHANGELOG,
+issue/PR templates, Dependabot). The remaining gap was **visual proof** + a few
+reproducibility signals — closed all five:
+- **#1 Dashboard screenshot (real).** Launched the Audit Console (`web/start.sh`),
+  which serves the existing real `runs/` through the Vite proxy — **no fresh
+  Ollama run needed**. Headless-Chrome shot at 2× → `docs/img/dashboard.png`
+  (pngquant, 112 KB). Shows 4 stat tiles (8 runs, 50% escalation, 12.1s, **Audit
+  Chain: All intact**), the run list, and a full trail (planner→worker→reviewer→
+  **escalate**→human **reject**→abort) with real models (`llama3.2`,
+  `aya-expanse:8b`), latencies, and policy flags. Embedded in README after the
+  Dashboard section. Real capture, not a mockup (honest-description invariant).
+- **#2 Social-preview** `docs/img/social-preview.png` — 1280×640 OG image built as
+  HTML→Chrome→pngquant (88 KB), matching the console's dark/emerald theme
+  ("Agents you can prove, not just run"). **Still needs the maintainer to upload
+  it** under Settings → Social preview (cannot be done via git).
+- **#3 `uv.lock`** committed (18 pkgs; pyproject untouched). **#4** Dependabot now
+  also watches `web/package-lock.json` (npm, `/web`).
+- **#5 `ROADMAP.md`** — honest backlog (audit-integrity hardening, config
+  validation, CI matrix) + explicit non-goals (no framework/hosted service/SDKs).
+- Console started for the shot was stopped cleanly (ports 18082/5173 free again).
+
+**Decided (now in BIBLE §6):** README screenshots are **real, never mockups**;
+reproducible installs are committed (`uv.lock` + `web/package-lock.json`, both in
+Dependabot). The "Repo polish" register item is narrowed — social-preview image
+done, only **GitHub Pages** (optional) + the manual upload remain.
+
+**Open / blocked:** unchanged register items — reviewer default without
+`llama3.1`; commit-trailers on the public repo (this session followed the
+existing convention and kept them); GitHub Pages; **audit-integrity hardening
+(P1)** still needs the maintainer to fix the schema shape (§3/§4) before coding.
+**Action item for the maintainer:** upload `docs/img/social-preview.png` in the
+repo's Settings → Social preview.
+
+**Next:** maintainer's pick from the review backlog — the P1 audit-integrity
+hardening is the highest-value item but is schema-blocked pending a decision.
+Otherwise: config schema-validation in the CLI, CI matrix (3.11/3.12/3.13),
+`pip-audit`.
+
+**Continuity warnings:** honour the invariants — reference pattern (no overclaim),
+tests stay **offline** (no Ollama in CI), no provider SDKs, never edit a trail in
+place, keys never in URLs, console stays localhost-only, `start.sh` never kills
+foreign processes. **Any README screenshot/output must stay real** — regenerate
+`docs/img/dashboard.png` from a live console if the UI changes, never fake it.
+
+---
+
 ## 2026-07-09 — External review: all P0 (security) items fixed
 
 **State:** HEAD `41f56a8` · 6 commit(s) unpushed at snapshot · gate **PASS**.

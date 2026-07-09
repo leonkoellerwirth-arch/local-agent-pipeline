@@ -88,8 +88,9 @@ Open items — `- [ ]` blocks the related task until decided with the maintainer
   `Co-Authored-By: Claude` + a `Claude-Session:` link. Decide whether to keep them
   or rewrite history before wider promotion (history rewrite is invasive — only on
   request).
-- [ ] **Repo polish:** social-preview image and (optionally) GitHub Pages for the
-  dashboard — not yet done.
+- [ ] **Repo polish:** GitHub Pages for the dashboard (optional) — not yet done.
+  The social-preview image now ships at `docs/img/social-preview.png`; only the
+  maintainer's manual upload under Settings → Social preview remains.
 - [ ] **Audit-integrity hardening (external review, P1).** The reviewer asked to
   make the audit story *tamper-resistant*, not just tamper-evident: full-length
   SHA-256 instead of the 16-hex fingerprint (or document it as a privacy
@@ -115,3 +116,9 @@ Resolved decisions of record (why things are the way they are):
   providers are opt-in and send data off-host; the console opens a local port).
 - The gate scans **source only** for TODO/name markers — never compiled `.pyc`
   (a bytecode byte-sequence once tripped the `XXX` check).
+- **Reproducible installs are committed:** `uv.lock` pins the Python graph and
+  `web/package-lock.json` the frontend; Dependabot watches pip, github-actions,
+  **and** npm (`/web`).
+- **README screenshots are real, never mockups** — the Audit Console shot
+  (`docs/img/dashboard.png`) is a captured session over the bundled examples,
+  in keeping with the honest-self-description invariant.
