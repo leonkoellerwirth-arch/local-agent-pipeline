@@ -4,6 +4,7 @@
 #
 #   web/start.sh              start both; open the browser
 #   web/start.sh --no-open    don't open a browser
+#   web/start.sh --free-port  stop whatever holds the ports first (opt-in)
 #   web/start.sh -h|--help    show this help
 #
 # No Docker, no framework — the API is stdlib Python (web/api_server.py) run
@@ -16,11 +17,13 @@ ROOT_DIR="$(cd "$APP_DIR/.." && pwd)"
 API_PORT="${API_PORT:-18082}"
 FE_PORT="${FE_PORT:-5173}"
 OPEN=1
+FREE_PORT=0
 
 for arg in "$@"; do
   case "$arg" in
     --no-open) OPEN=0 ;;
-    -h|--help) sed -n '3,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --free-port) FREE_PORT=1 ;;
+    -h|--help) sed -n '3,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -31,14 +34,36 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-free_port() {
-  local pids; pids="$(lsof -ti tcp:"$1" 2>/dev/null || true)"
-  [ -n "$pids" ] && { echo "Freeing port $1 ($pids)"; kill $pids 2>/dev/null || true; sleep 1; }
-  return 0
+# Shared session token: the API requires it and the Vite proxy forwards it, so
+# the browser never sees it and other local processes can't drive the API.
+# Override by exporting API_TOKEN yourself.
+export API_TOKEN="${API_TOKEN:-$("$VENV_PY" -c 'import secrets; print(secrets.token_urlsafe(24))')}"
+
+# Never kill a process we didn't start. If a port is taken, say so and stop —
+# unless the user explicitly opted in with --free-port.
+ensure_port_free() {
+  local port="$1" name="$2" pids
+  command -v lsof >/dev/null 2>&1 || return 0   # can't check; let the bind fail instead
+  pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+  [ -z "$pids" ] && return 0
+  if [ "$FREE_PORT" = 1 ]; then
+    echo "Freeing $name port $port (PID(s): $pids) — you passed --free-port."
+    kill $pids 2>/dev/null || true
+    sleep 1
+    return 0
+  fi
+  {
+    echo "Port $port ($name) is already in use by PID(s): $pids."
+    echo "Refusing to kill a process this script didn't start. Either:"
+    echo "  - stop it yourself, or"
+    echo "  - re-run with --free-port to have this script stop it, or"
+    echo "  - set ${name}_PORT to a free port."
+  } >&2
+  exit 1
 }
 
-free_port "$API_PORT"
-free_port "$FE_PORT"
+ensure_port_free "$API_PORT" API
+ensure_port_free "$FE_PORT" FE
 
 echo "Starting audit API on :$API_PORT ..."
 API_PORT="$API_PORT" "$VENV_PY" "$APP_DIR/api_server.py" &
