@@ -279,15 +279,83 @@ commit conventions, and PR expectations. Maintainers: [docs/SOP.md](docs/SOP.md)
 covers adding policy rules, extending the action space, and keeping the audit
 schema compatible with the sibling toolkit.
 
-## Working across sessions (for AI agents)
+## How we work with this repo (session workflow)
 
-So work with an AI agent survives a fresh session, the repo keeps its own memory:
-[`BIBLE.md`](BIBLE.md) holds the binding invariants and open decisions,
-[`HANDOFF.md`](HANDOFF.md) is a newest-first session log, and
-[`CLAUDE.md`](CLAUDE.md) wires it together. Start a session with `/session-start`
-(reconstructs state from the deterministic `scripts/` + the repo memory) and end
-it with `/session-stop` (gate → snapshot → commit → push). Both are visible in
-the dashboard's **Docs** tab too.
+The same governance discipline the pipeline applies to *agents* — nothing off
+the record, decisions written down, a hard gate before anything is accepted — is
+how the repo itself is developed. So work with an AI agent survives a fresh
+session without drift, the repo keeps its own memory and a fixed ritual around
+it.
+
+**Three artefacts hold the state:**
+
+| Artefact | Role |
+|----------|------|
+| [`BIBLE.md`](BIBLE.md) | The constitution: binding invariants (§2–§4) and an open **Decision register** (§6). An invariant is never violated; a needed choice that isn't covered is added to the register and asked — never improvised. |
+| [`HANDOFF.md`](HANDOFF.md) | Newest-first session log. Each entry: **Done · Decided · Open/blocked · Next · Continuity warnings**. The next session starts by reading the top entry. |
+| [`scripts/`](scripts/) | Deterministic truth — **no AI**. `state.sh` (branch/HEAD/LoC/tests/ruff), `gate.sh` (the hard pass/fail), `secure.sh` (committed & pushed?), `session-snapshot.sh` (seeds a new HANDOFF entry). |
+
+**Three skills drive the ritual** (Claude Code slash-commands in
+[`.claude/skills/`](.claude/skills/), wired via [`CLAUDE.md`](CLAUDE.md)):
+
+| Skill | When | What it does |
+|-------|------|--------------|
+| `/session-start` | Opening any session | Runs the scripts, reads the newest `HANDOFF` entry + the `BIBLE` register, then briefs: where we are, last done, blocking decisions, next step, continuity warnings. **Reconstructs state before touching anything — no drift.** |
+| `/project-state` | Quick status check | Just `state.sh` + gate/secure, with a short honest read. No full reconstruction. |
+| `/session-stop` | Closing any session | Records decisions in `BIBLE`, rescues any chat-only idea into the `HANDOFF` entry, runs the hard gate, snapshots `HANDOFF`, then commits & pushes. **Nothing forgotten, nothing left half-done.** |
+
+The rule that ties it together: **do not start substantive work while a blocking
+`BIBLE` decision is open, the gate is red, or `secure.sh` reports unpushed work.**
+All three files are also visible in the dashboard's **Docs** tab.
+
+### Demo — a real session, start to finish
+
+`/session-start` runs the deterministic scripts first. This is the real,
+unedited output from this repo on a clean tree — copy it and run it yourself:
+
+```console
+$ ./scripts/state.sh
+== local-agent-pipeline — state ==
+branch: main   HEAD: 51cb039   uncommitted files: 0   commits ahead of origin: 0
+source LoC (src/): 1542   test functions: 65   ruff: clean
+
+$ ./scripts/gate.sh
+== hard gate ==
+  ✓ ruff check clean
+  ✓ ruff format clean
+  ✓ pytest green (offline)
+  ✓ no TODO/FIXME in src/
+  ✓ no customer-internal names
+  ✓ no obvious secrets tracked
+  ✓ internal brief not tracked
+  ✓ web build (tsc + vite)
+
+GATE: PASS
+
+$ ./scripts/secure.sh
+✓ working tree clean
+✓ pushed — origin/main is up to date
+
+SECURE: all saved
+```
+
+(`state.sh` also prints the recent-commits list, trimmed here.)
+
+It then reads the top `HANDOFF.md` entry and the open `BIBLE.md` register and
+briefs you — e.g. *"main @ 51cb039, gate PASS, all pushed; last done: session
+continuity system; 3 open decisions, none blocking; next: merge dependabot PRs."*
+You do the work, then `/session-stop` closes the loop:
+
+```text
+BIBLE.md     ← decisions recorded, register ticked
+HANDOFF.md   ← new top entry (Done/Decided/Open/Next/Warnings)
+gate.sh      → GATE: PASS   (else: fix before committing)
+git          → granular conventional commits, pushed
+secure.sh    → SECURE: all saved
+```
+
+The next `/session-start` reads exactly that entry — so a new session continues
+from the proven state, not from memory of the chat.
 
 ## Related
 
