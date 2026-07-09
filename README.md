@@ -183,12 +183,28 @@ live model — see [`examples/expected-outputs/`](examples/expected-outputs/)):
 ![Rendered audit trail for the contract example](examples/expected-outputs/sample-contract-audit.svg)
 
 The trail is **tamper-evident**: every event is hash-chained to the one before
-it. Verify that a trail has not been edited, truncated, or reordered:
+it with a full SHA-256 digest (over the event's content *and* the previous
+event's hash). Verify that a trail has not been edited, truncated, or reordered:
 
 ```bash
 agent-pipeline audit runs/<run_id>.jsonl --verify
 # ✓ Audit chain intact — chain intact across 12 events
 # (exits non-zero and names the first broken event if the trail was altered)
+```
+
+**Optionally tamper-*resistant*, too.** The hash chain detects edits, but anyone
+can recompute it. For an integrity guarantee that survives a determined forger,
+set a secret key in the environment named by `audit.hmac_key_env` (default
+`AUDIT_HMAC_KEY`). Each closed trail is then sealed with an HMAC-SHA256 over its
+chain head, written to a sidecar `<run_id>.jsonl.sig`. Without the key, no one
+can forge a valid seal — even after re-chaining edited events. The key lives only
+in the environment, never in the config or the repo; leave it unset and trails
+are simply unsigned (the chain is still tamper-evident).
+
+```bash
+AUDIT_HMAC_KEY=… agent-pipeline audit runs/<run_id>.jsonl --verify
+# ✓ Audit chain intact — chain intact across 12 events
+# ✓ HMAC seal valid — trail authenticated with the shared key.
 ```
 
 For programmatic access, each line of `runs/<run_id>.jsonl` is one raw event.
@@ -200,7 +216,8 @@ A contract run reads like this (abbreviated):
 {"actor":"worker",  "action":"execute", "step_id":"s1", "model":"llama3.2", "confidence":0.9, "latency_ms":812}
 {"actor":"reviewer","action":"review",  "step_id":"s1", "model":"llama3.1", "decision":"escalate",
  "policy_flags":["pii:email","pii:iban","pii:phone","contract_value_exceeds_threshold"]}
-{"actor":"human",   "action":"gate_decision", "step_id":"s1", "decision":"approve"}
+{"actor":"human",   "action":"gate_decision", "step_id":"s1", "decision":"approve",
+ "gate_reason":"reviewed; values confirmed with counterparty"}
 {"actor":"system",  "action":"run_complete", "decision":"completed"}
 ```
 

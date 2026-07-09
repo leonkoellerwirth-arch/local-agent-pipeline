@@ -84,19 +84,9 @@ Open items — `- [ ]` blocks the related task until decided with the maintainer
   is `reviewer: llama3.1`; it is not installed on the author's machine. Either
   `ollama pull llama3.1`, or set an installed model locally (e.g.
   `aya-expanse:8b`) — a legitimate, uncommitted local config edit.
-- [ ] **Commit-message trailers on the public repo.** History carries
-  `Co-Authored-By: Claude` + a `Claude-Session:` link. Decide whether to keep them
-  or rewrite history before wider promotion (history rewrite is invasive — only on
-  request).
 - [ ] **Repo polish:** GitHub Pages for the dashboard (optional) — not yet done.
   The social-preview image now ships at `docs/img/social-preview.png`; only the
   maintainer's manual upload under Settings → Social preview remains.
-- [ ] **Audit-integrity hardening (external review, P1).** The reviewer asked to
-  make the audit story *tamper-resistant*, not just tamper-evident: full-length
-  SHA-256 instead of the 16-hex fingerprint (or document it as a privacy
-  fingerprint only), an optional HMAC/signature, and the human gate-reason
-  recorded in the trail. These touch the audit schema (§4) and the integrity
-  claim (§3), so decide the shape with the maintainer before coding.
 
 Resolved decisions of record (why things are the way they are):
 
@@ -116,9 +106,20 @@ Resolved decisions of record (why things are the way they are):
   providers are opt-in and send data off-host; the console opens a local port).
 - The gate scans **source only** for TODO/name markers — never compiled `.pyc`
   (a bytecode byte-sequence once tripped the `XXX` check).
+- **Audit integrity is layered:** the full-SHA-256 hash chain is always-on
+  tamper-*evidence*; the optional HMAC-SHA256 seal (env `AUDIT_HMAC_KEY`, sidecar
+  `.sig`, over the chain head) adds tamper-*resistance*. The `gate_reason` is
+  recorded in the trail. Content fingerprints are full SHA-256, not truncated.
+  Schema changes stayed **additive** (§4): `gate_reason` is optional and the seal
+  is a sidecar, so the sibling `log_analyzer` is unaffected.
+- **Commit-message trailers are kept** (`Co-Authored-By: Claude` +
+  `Claude-Session:`) — consistent with the whole history and honest about
+  authorship; no history rewrite.
 - **Reproducible installs are committed:** `uv.lock` pins the Python graph and
   `web/package-lock.json` the frontend; Dependabot watches pip, github-actions,
   **and** npm (`/web`).
-- **README screenshots are real, never mockups** — the Audit Console shot
-  (`docs/img/dashboard.png`) is a captured session over the bundled examples,
-  in keeping with the honest-self-description invariant.
+- **README screenshots/outputs are real, never mockups** — the Audit Console
+  shot (`docs/img/dashboard.png`) is a captured session; the trail SVGs and
+  example JSONL come from `scripts/render_examples.py`. Regenerate from a live
+  console or that script rather than editing by hand (honest-description
+  invariant).

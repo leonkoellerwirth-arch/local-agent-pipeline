@@ -8,15 +8,16 @@ Nothing here is a promise or a schedule; it is the honest backlog.
 Binding invariants and the open decision register live in
 [`BIBLE.md`](BIBLE.md); each item below that touches a gated area says so.
 
-## Now (next up)
+## Done
 
-- **Audit-integrity hardening.** Make the audit story *tamper-resistant*, not
-  only tamper-evident: full-length SHA-256 alongside the 16-hex fingerprint (or
-  document the fingerprint as privacy-only), an optional HMAC/signature, and the
-  human gate-reason recorded in the trail. _Touches the audit schema (BIBLE §4)
-  and the integrity claim (§3) — shape to be agreed with the maintainer first._
-- **Reproducible installs.** `uv.lock` for the Python side (done); keep it and
-  `web/package-lock.json` current, both watched by Dependabot.
+- **Audit-integrity hardening** ✅ — the audit story is now tamper-*resistant*,
+  not only tamper-*evident*: content fingerprints widened to full SHA-256, the
+  human gate-reason recorded in the trail (`gate_reason`, covered by the chain),
+  and an optional HMAC-SHA256 seal over the chain head (opt-in via
+  `AUDIT_HMAC_KEY`, sidecar `.sig`). Schema change is additive; example trails
+  regenerated.
+- **Reproducible installs** ✅ — `uv.lock` and `web/package-lock.json` committed,
+  both watched by Dependabot.
 
 ## Next
 

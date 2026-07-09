@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Audit-integrity hardening:** the trail is now tamper-*resistant*, not only
+  tamper-*evident*. Content fingerprints (`prompt_hash`/`output_hash`) widened
+  from a 16-hex truncation to full SHA-256; the human/policy gate decision now
+  records its free-text reason (`gate_reason`, an additive field covered by the
+  hash chain); and an optional HMAC-SHA256 seal over the chain head (opt-in via
+  the `AUDIT_HMAC_KEY` env var, written to a sidecar `<run_id>.jsonl.sig`) lets a
+  key-holder detect even a fully re-chained forgery. `agent-pipeline audit
+  --verify` reports the seal status. Example trails regenerated.
+
+### Changed
+
+- `AuditEvent` gains the optional `gate_reason` field, and `content_hash` returns
+  a full-length digest. Both are backward-compatible for the sibling
+  `log_analyzer` (additive field; the HMAC seal is a sidecar, not in the JSONL).
+
+### Added (docs & tooling)
+
 - **Documentation & repo polish:** a real Audit Console screenshot in the README
   (`docs/img/dashboard.png`), a `ROADMAP.md` (honest backlog + explicit
   non-goals), and a social-preview image (`docs/img/social-preview.png`).
