@@ -161,6 +161,12 @@ oversight the CLI has, moved to the web. No web framework, no Docker. The
 frontend lives in `web/` and is entirely optional; the pipeline and CLI do not
 depend on it.
 
+![The Audit Console: per-run stat tiles, the run list, and a selected trail showing the planner → worker → reviewer → human-gate flow with per-stage models, latencies, policy flags, and a verified hash chain](docs/img/dashboard.png)
+
+The shot above is a real session over the bundled examples: the reviewer
+(`aya-expanse:8b`) escalated a contract, a human rejected it at the gate, and
+every trail still verifies — the **Audit Chain** tile reads *All intact*.
+
 ## Reading the audit trail
 
 Use the built-in `audit` subcommand to print a formatted summary of any run:
