@@ -101,11 +101,10 @@ Resolved decisions of record (why things are the way they are):
   sdist/wheel on a `v*` tag and attaches a build-provenance attestation via
   GitHub OIDC (`actions/attest-build-provenance`) — no signing keys to manage;
   verify with `gh attestation verify`.
-
-- Tamper-evident hash chain is the headline differentiator (vs. "we log stuff").
-- Dashboard uses a **stdlib** Python API + Vite proxy (ytscapper's architecture)
-  — **no Docker, no framework, no provider SDKs** — to fit "small & local".
-- CI covers Python **and** the web build.
+- **Tamper-evident hash chain is the headline differentiator** (vs. "we log stuff").
+- **Dashboard is a stdlib Python API + Vite proxy** (ytscapper's architecture) —
+  no Docker, no framework, no provider SDKs — to fit "small & local".
+- **CI covers Python and the web build.**
 - **Cloud-provider keys go in request headers, never in a URL** (Gemini used a
   `?key=` query param); error messages strip query strings as defence in depth.
 - **The local web console is guarded, not open:** localhost bind + shared
@@ -116,7 +115,7 @@ Resolved decisions of record (why things are the way they are):
   hard error; killing is opt-in via `--free-port`.
 - **`SECURITY.md` states the real threat model** (local-by-default; external
   providers are opt-in and send data off-host; the console opens a local port).
-- The gate scans **source only** for TODO/name markers — never compiled `.pyc`
+- **The gate scans source only** for TODO/name markers — never compiled `.pyc`
   (a bytecode byte-sequence once tripped the `XXX` check).
 - **Audit integrity is layered:** the full-SHA-256 hash chain is always-on
   tamper-*evidence*; the optional HMAC-SHA256 seal (env `AUDIT_HMAC_KEY`, sidecar
