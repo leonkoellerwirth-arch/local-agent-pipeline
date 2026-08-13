@@ -50,7 +50,10 @@ jobs:
 
       - name: Audit dependencies
         run: |
-          pip install pip-audit
+          # Patch the runner's build tooling first — setuptools < 83.0.0 has PYSEC-2026-3447.
+          # It ships with the runner image, not with this project, so pinning it in pyproject
+          # would not help; pip-audit sees whatever is installed in the environment.
+          pip install --upgrade "setuptools>=83.0.0" pip-audit
           pip-audit
 
   web:
