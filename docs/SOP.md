@@ -115,9 +115,9 @@ requires touching three places:
    ```python
    class Action(StrEnum):
        CLASSIFY = "classify"
-       EXTRACT  = "extract"
+       EXTRACT = "extract"
        SUMMARIZE = "summarize"
-       TRANSLATE = "translate"   # new
+       TRANSLATE = "translate"  # new
    ```
 
 2. **`config/policy.yaml`** — add the action name to `action_space`:
