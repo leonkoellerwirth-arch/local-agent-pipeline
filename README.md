@@ -394,6 +394,6 @@ that project's `log_analyzer`.
 
 ## Author
 
-Leon Köllerwirth Hlihel — <https://leonkoellerwirth.de>
+Leon Köllerwirth Hlihel — <https://leon-koellerwirth.com>
 
 Licensed under the MIT License. All example documents are fictional.

@@ -68,7 +68,7 @@ regenerate the committed example trails (`scripts/render_examples.py`) when you 
 ## 5. Facts & coordinates
 
 - **Repo:** `leonkoellerwirth-arch/local-agent-pipeline` (public). Released `v0.1.0`.
-- **Author:** Leon Köllerwirth Hlihel — https://leonkoellerwirth.de.
+- **Author:** Leon Köllerwirth Hlihel — https://leon-koellerwirth.com.
 - **Sibling:** `agentic-ai-governance-toolkit` (describes governance; this repo
   implements it).
 - **Env:** system `python3` is 3.10 but the project needs ≥3.11 → use `.venv`

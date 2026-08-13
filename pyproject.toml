@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://leonkoellerwirth.de"
+Homepage = "https://leon-koellerwirth.com"
 Repository = "https://github.com/leonkoellerwirth-arch/local-agent-pipeline"
 
 [project.scripts]
